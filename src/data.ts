@@ -12,7 +12,7 @@ const skill = (
 export const seedMembers: Member[] = [
   {
     id: 'm1', name: '山田 花子', email: 'hanako@example.com', initials: '山',
-    roleLabel: 'シニアデザイナー', role: 'member', capacity: '少し余裕あり',
+    roleLabel: 'シニアデザイナー', role: 'member',
     updatedAt: '2026-07-12', accent: '#6376C4', active: true,
     direction: '企画と表現をつなぐサービスデザインを伸ばしたい', feedback: [],
     skills: [
@@ -23,7 +23,7 @@ export const seedMembers: Member[] = [
   },
   {
     id: 'm2', name: '田中 花子', email: 'tanaka@example.com', initials: '田',
-    roleLabel: 'デザイナー', role: 'member', capacity: '少し余裕あり',
+    roleLabel: 'デザイナー', role: 'member',
     updatedAt: '2026-07-15', accent: '#D47861', active: true,
     direction: '情報を整理し、提案の説得力を高められるようになりたい', feedback: [],
     skills: [
@@ -34,7 +34,7 @@ export const seedMembers: Member[] = [
   },
   {
     id: 'm3', name: '佐藤 健', email: 'sato@example.com', initials: '佐',
-    roleLabel: 'デザインリーダー', role: 'assigner', capacity: 'ほぼ埋まっている',
+    roleLabel: 'デザインリーダー', role: 'assigner',
     updatedAt: '2026-07-10', accent: '#3C8A70', active: true,
     direction: 'チームが継続的に改善できる仕組みをつくりたい', feedback: [],
     skills: [
@@ -45,7 +45,7 @@ export const seedMembers: Member[] = [
   },
   {
     id: 'm4', name: '高橋 葵', email: 'aoi@example.com', initials: '高',
-    roleLabel: 'UIデザイナー', role: 'member', capacity: '余裕あり',
+    roleLabel: 'UIデザイナー', role: 'member',
     updatedAt: '2026-07-16', accent: '#8B69AF', active: true,
     direction: 'プロダクトの体験全体を設計できるようになりたい', feedback: [],
     skills: [
@@ -56,7 +56,7 @@ export const seedMembers: Member[] = [
   },
   {
     id: 'm5', name: '伊藤 直樹', email: 'ito@example.com', initials: '伊',
-    roleLabel: 'デザイナー', role: 'member', capacity: '新しい仕事は難しい',
+    roleLabel: 'デザイナー', role: 'member',
     updatedAt: '2026-06-21', accent: '#B4823F', active: true,
     direction: '単発制作の経験を、一貫したブランドづくりへ広げたい', feedback: [],
     skills: [
@@ -67,7 +67,7 @@ export const seedMembers: Member[] = [
   },
   {
     id: 'm6', name: '小林 美咲', email: 'kobayashi@example.com', initials: '小',
-    roleLabel: 'デザイナー', role: 'member', capacity: '少し余裕あり',
+    roleLabel: 'デザイナー', role: 'member',
     updatedAt: '2026-07-08', accent: '#40859A', active: true,
     direction: '人の声から、伝わるブランド体験をつくりたい', feedback: [],
     skills: [
@@ -78,7 +78,7 @@ export const seedMembers: Member[] = [
   },
   {
     id: 'm7', name: '中村 陸', email: 'nakamura@example.com', initials: '中',
-    roleLabel: 'アシスタントデザイナー', role: 'member', capacity: '余裕あり',
+    roleLabel: 'アシスタントデザイナー', role: 'member',
     updatedAt: '2026-07-14', accent: '#557DA9', active: true,
     direction: '制作だけでなく、使われ続ける仕組みを考えたい', feedback: [],
     skills: [
@@ -89,7 +89,7 @@ export const seedMembers: Member[] = [
   },
   {
     id: 'm8', name: '鈴木 美咲', email: 'suzuki@example.com', initials: '鈴',
-    roleLabel: 'デザイン部長', role: 'admin', capacity: 'ほぼ埋まっている',
+    roleLabel: 'デザイン部長', role: 'admin',
     updatedAt: '2026-07-03', accent: '#405476', active: true,
     direction: '一人ひとりが挑戦しやすいチームをつくりたい', feedback: [],
     skills: [

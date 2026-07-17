@@ -29,8 +29,8 @@ export default function App() {
     <div className="app-shell">
       <header className="app-header">
         <button className="brand" onClick={() => navigate({ page: 'map' })}>
-          <span className="brand-mark">T</span>
-          <span>Talkship</span>
+          <span className="brand-mark">M</span>
+          <span>チームマップ</span>
         </button>
 
         <nav aria-label="メインメニュー">

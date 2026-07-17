@@ -19,7 +19,7 @@ interface StoreValue {
   reset: () => void;
 }
 
-const STORAGE_KEY = 'talkship-team-map-v2';
+const STORAGE_KEY = 'team-skill-map-v3';
 const StoreContext = createContext<StoreValue | null>(null);
 
 export function StoreProvider({ children }: { children: ReactNode }) {

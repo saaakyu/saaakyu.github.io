@@ -1,4 +1,4 @@
-import { ArrowLeft, CalendarDays, Edit3, MessageCircle } from 'lucide-react';
+import { ArrowLeft, CalendarDays, Edit3 } from 'lucide-react';
 import type { Route } from '../App';
 import { useStore } from '../store';
 import type { SkillIntent, Visibility } from '../types';
@@ -41,7 +41,6 @@ export default function DetailPage({ id, navigate }: { id: string; navigate: (ro
         <div>
           <p>{member.roleLabel}</p>
           <h1>{member.name}</h1>
-          <span className={`capacity capacity-${member.capacity}`}>{member.capacity}</span>
         </div>
         {isOwner && (
           <button className="primary-button" onClick={() => navigate({ page: 'profile' })}>
@@ -89,17 +88,9 @@ export default function DetailPage({ id, navigate }: { id: string; navigate: (ro
             <h2>プロフィールについて</h2>
             <dl>
               <div><dt>共有されているスキル</dt><dd>{skills.length}件</dd></div>
-              <div><dt>現在の余力</dt><dd>{member.capacity}</dd></div>
               <div><dt>最終確認</dt><dd>{new Date(member.updatedAt).toLocaleDateString('ja-JP')}</dd></div>
             </dl>
           </section>
-          {!isOwner && currentUser.role !== 'member' && (
-            <section className="feedback-guide">
-              <MessageCircle />
-              <h2>認識を合わせたいとき</h2>
-              <p>本人の登録内容は変更せず、具体的な出来事を本人へ伝えて話してみましょう。</p>
-            </section>
-          )}
         </aside>
       </div>
     </div>

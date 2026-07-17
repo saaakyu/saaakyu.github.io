@@ -1,11 +1,5 @@
 export type Role = 'member' | 'assigner' | 'admin';
 
-export type Capacity =
-  | '余裕あり'
-  | '少し余裕あり'
-  | 'ほぼ埋まっている'
-  | '新しい仕事は難しい';
-
 export type Visibility = 'team' | 'assigner' | 'private';
 
 export type ExperienceLevel = 1 | 2 | 3 | 4 | 5;
@@ -42,7 +36,6 @@ export interface Member {
   initials: string;
   roleLabel: string;
   role: Role;
-  capacity: Capacity;
   updatedAt: string;
   accent: string;
   direction: string;

@@ -2,9 +2,8 @@ import { useState } from 'react';
 import { Check, Plus, Save, Trash2 } from 'lucide-react';
 import type { Route } from '../App';
 import { useStore } from '../store';
-import type { Capacity, ExperienceLevel, SkillEntry, SkillIntent, Visibility } from '../types';
+import type { ExperienceLevel, SkillEntry, SkillIntent, Visibility } from '../types';
 
-const capacities: Capacity[] = ['余裕あり', '少し余裕あり', 'ほぼ埋まっている', '新しい仕事は難しい'];
 const intents: SkillIntent[] = ['活かしたい', '機会があれば', '挑戦したい', '支援があれば', '今は減らしたい', '今は避けたい'];
 const levels: { value: ExperienceLevel; label: string }[] = [
   { value: 1, label: '学んでいる途中' },
@@ -49,18 +48,6 @@ export default function ProfilePage({ navigate }: { navigate: (route: Route) => 
 
       <section className="edit-section">
         <h2>今の状況</h2>
-        <label className="field-label">現在の余力</label>
-        <div className="choice-buttons">
-          {capacities.map((capacity) => (
-            <button
-              className={form.capacity === capacity ? 'selected' : ''}
-              key={capacity}
-              onClick={() => setForm({ ...form, capacity })}
-            >
-              {form.capacity === capacity && <Check />}{capacity}
-            </button>
-          ))}
-        </div>
         <label className="form-field">
           <span>これから大切にしたいこと</span>
           <textarea value={form.direction} onChange={(event) => setForm({ ...form, direction: event.target.value })} />

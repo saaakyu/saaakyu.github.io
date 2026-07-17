@@ -8,7 +8,7 @@ export default function LoginPage() {
   return (
     <main className="login-page">
       <section className="login-intro">
-        <div className="login-brand"><span className="brand-mark">T</span> Talkship</div>
+        <div className="login-brand"><span className="brand-mark">M</span> チームマップ</div>
         <div>
           <h1>チームの「できる」と<br />「やりたい」を一緒に見る。</h1>
           <p>
