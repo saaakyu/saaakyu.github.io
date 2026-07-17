@@ -1,4 +1,142 @@
-import{useState}from'react';import{Check,Sparkles,ChevronRight,Save,Eye,LockKeyhole,Users}from'lucide-react';import{useStore}from'../store';import type{Capacity,InterestLevel,Visibility}from'../types';
-const changes=['できることが増えた','やりたいことが変わった','今の余力が変わった','避けたいことが変わった','成長方針が変わった'];
-export default function ProfilePage(){const{viewer,saveMember}=useStore();const[selected,setSelected]=useState<string[]>([]);const[editing,setEditing]=useState(false);const[saved,setSaved]=useState(false);const[form,setForm]=useState(viewer);const toggle=(x:string)=>setSelected(s=>s.includes(x)?s.filter(v=>v!==x):[...s,x]);const save=()=>{saveMember({...form,updatedAt:new Date().toISOString().slice(0,10)});setSaved(true);setEditing(false);setTimeout(()=>setSaved(false),3000)};if(saved)return <section className="update-wrap"><div className="success"><span><Check/></span><h1>最近の状況を確認しました</h1><p>更新した内容と共有範囲に応じて、チームに表示されます。</p><button onClick={()=>{setSaved(false);setSelected([])}}>プロフィールに戻る</button></div></section>;if(!editing)return <section className="update-wrap"><span className="eyebrow">QUICK UPDATE</span><h1>前回から変わったことは<br/>ありますか？</h1><p className="lead">変わったところだけ、1分ほどで更新できます。</p><div className="change-list">{changes.map(x=><button className={selected.includes(x)?'selected':''} key={x} onClick={()=>toggle(x)}><span>{selected.includes(x)?<Check/>:<Sparkles/>}</span>{x}<ChevronRight/></button>)}</div><button className="no-change" onClick={()=>{saveMember({...viewer,updatedAt:new Date().toISOString().slice(0,10)});setSaved(true)}}><Check/>特に変化はない</button><button className="primary wide" disabled={!selected.length} onClick={()=>setEditing(true)}>選んだ項目を更新する</button></section>;return <section className="form-wrap"><button className="back" onClick={()=>setEditing(false)}>← 戻る</button><span className="eyebrow">PROFILE UPDATE</span><h1>変わったところを更新</h1><p>選んだ項目だけを表示しています。</p>{selected.includes('今の余力が変わった')&&<div className="form-section"><h2>今の余力</h2><div className="choice-grid">{(['余裕あり','少し余裕あり','ほぼ埋まっている','新しい仕事は難しい'] as Capacity[]).map(x=><button className={form.capacity===x?'selected':''} key={x} onClick={()=>setForm({...form,capacity:x})}>{form.capacity===x&&<Check/>}{x}</button>)}</div></div>}{selected.includes('やりたいことが変わった')&&<div className="form-section"><h2>次にやりたいこと</h2><label>仕事やテーマ<input value={form.interests[0]?.topic??''} onChange={e=>setForm({...form,interests:[{...(form.interests[0]??{visibility:'team'}),topic:e.target.value,level:form.interests[0]?.level??'機会があればやりたい',comment:form.interests[0]?.comment??''}]})}/></label><label>興味の程度<select value={form.interests[0]?.level} onChange={e=>setForm({...form,interests:[{...form.interests[0],level:e.target.value as InterestLevel}]})}>{['少し気になる','機会があればやりたい','ぜひやりたい','次に優先して挑戦したい'].map(x=><option>{x}</option>)}</select></label><label>あなたの言葉<textarea value={form.interests[0]?.comment??''} onChange={e=>setForm({...form,interests:[{...form.interests[0],comment:e.target.value}]})}/></label><Visibility value={form.interests[0]?.visibility??'team'} onChange={v=>setForm({...form,interests:[{...form.interests[0],visibility:v}]})}/></div>}{selected.includes('成長方針が変わった')&&<div className="form-section"><h2>成長方針</h2><label>今後大切にしたい方向<input value={form.direction} onChange={e=>setForm({...form,direction:e.target.value})}/></label></div>}{selected.includes('できることが増えた')&&<div className="form-section"><h2>できること</h2><p className="muted">現在：{form.skills.map(s=>s.name).join('、')}</p><label>新しく追加するスキル<input placeholder="例：サービスデザイン" onBlur={e=>{if(e.target.value)setForm({...form,skills:[...form.skills,{name:e.target.value,level:1,visibility:'team'}]})}}/></label></div>}{selected.includes('避けたいことが変わった')&&<div className="form-section"><h2>負荷を感じること・今は避けたいこと</h2><p className="muted">現在：{form.avoidances.map(a=>`${a.topic}（${a.kind}）`).join('、')||'登録なし'}</p><p>詳しい変更は次回のプロトタイプで追加予定です。</p></div>}<button className="primary wide" onClick={save}><Save/>変更を保存</button></section>}
-function Visibility({value,onChange}:{value:Visibility;onChange:(v:Visibility)=>void}){return <fieldset className="visibility"><legend>この内容を誰に共有しますか？</legend>{([{v:'team',l:'チームに共有',i:<Users/>},{v:'assigner',l:'アサイン検討者だけ',i:<Eye/>},{v:'private',l:'自分だけ',i:<LockKeyhole/>}] as const).map(x=><button type="button" className={value===x.v?'selected':''} onClick={()=>onChange(x.v)}>{x.i}{x.l}</button>)}</fieldset>}
+import { useState } from 'react';
+import { Check, Plus, Save, Trash2 } from 'lucide-react';
+import type { Route } from '../App';
+import { useStore } from '../store';
+import type { Capacity, ExperienceLevel, SkillEntry, SkillIntent, Visibility } from '../types';
+
+const capacities: Capacity[] = ['余裕あり', '少し余裕あり', 'ほぼ埋まっている', '新しい仕事は難しい'];
+const intents: SkillIntent[] = ['活かしたい', '機会があれば', '挑戦したい', '支援があれば', '今は減らしたい', '今は避けたい'];
+const levels: { value: ExperienceLevel; label: string }[] = [
+  { value: 1, label: '学んでいる途中' },
+  { value: 2, label: 'サポートがあれば取り組める' },
+  { value: 3, label: '一人で対応できる' },
+  { value: 4, label: '支援・レビューできる' },
+  { value: 5, label: '進め方やルールを設計できる' },
+];
+
+const emptySkill: SkillEntry = {
+  name: '', category: 'プロダクト', level: 1, intent: '挑戦したい', comment: '', visibility: 'team',
+};
+
+export default function ProfilePage({ navigate }: { navigate: (route: Route) => void }) {
+  const { currentUser, saveMember } = useStore();
+  const [form, setForm] = useState(currentUser!);
+  const [saved, setSaved] = useState(false);
+  const [adding, setAdding] = useState(false);
+
+  if (!currentUser) return null;
+
+  const updateSkill = (index: number, patch: Partial<SkillEntry>) => {
+    const skills = form.skills.map((entry, entryIndex) => entryIndex === index ? { ...entry, ...patch } : entry);
+    setForm({ ...form, skills });
+  };
+
+  const save = () => {
+    saveMember({ ...form, updatedAt: new Date().toISOString().slice(0, 10) });
+    setSaved(true);
+    window.setTimeout(() => setSaved(false), 2400);
+  };
+
+  return (
+    <div className="page-wrap profile-edit">
+      <section className="page-heading">
+        <div>
+          <h1>自分のプロフィール</h1>
+          <p>経験や意向が変わったところだけ更新してください。</p>
+        </div>
+        {saved && <span className="saved-message"><Check /> 保存しました</span>}
+      </section>
+
+      <section className="edit-section">
+        <h2>今の状況</h2>
+        <label className="field-label">現在の余力</label>
+        <div className="choice-buttons">
+          {capacities.map((capacity) => (
+            <button
+              className={form.capacity === capacity ? 'selected' : ''}
+              key={capacity}
+              onClick={() => setForm({ ...form, capacity })}
+            >
+              {form.capacity === capacity && <Check />}{capacity}
+            </button>
+          ))}
+        </div>
+        <label className="form-field">
+          <span>これから大切にしたいこと</span>
+          <textarea value={form.direction} onChange={(event) => setForm({ ...form, direction: event.target.value })} />
+        </label>
+      </section>
+
+      <section className="edit-section">
+        <div className="edit-section-heading">
+          <div><h2>経験とこれからの意向</h2><p>スキルごとに、今後どのように関わりたいかを登録します。</p></div>
+          <button className="secondary-button" onClick={() => setAdding(true)}><Plus /> スキルを追加</button>
+        </div>
+        <div className="skill-edit-list">
+          {form.skills.map((entry, index) => (
+            <article key={`${entry.name}-${index}`}>
+              <div className="skill-edit-heading">
+                <div><span>{entry.category}</span><h3>{entry.name}</h3></div>
+                <button aria-label={`${entry.name}を削除`} onClick={() => setForm({ ...form, skills: form.skills.filter((_, i) => i !== index) })}><Trash2 /></button>
+              </div>
+              <div className="form-row">
+                <label className="form-field">
+                  <span>経験の目安</span>
+                  <select value={entry.level} onChange={(event) => updateSkill(index, { level: Number(event.target.value) as ExperienceLevel })}>
+                    {levels.map((level) => <option value={level.value} key={level.value}>{level.label}</option>)}
+                  </select>
+                </label>
+                <label className="form-field">
+                  <span>これからの意向</span>
+                  <select value={entry.intent} onChange={(event) => updateSkill(index, { intent: event.target.value as SkillIntent })}>
+                    {intents.map((intent) => <option key={intent}>{intent}</option>)}
+                  </select>
+                </label>
+              </div>
+              <label className="form-field">
+                <span>自分の言葉で補足</span>
+                <textarea value={entry.comment} onChange={(event) => updateSkill(index, { comment: event.target.value })} />
+              </label>
+              <label className="form-field visibility-field">
+                <span>公開範囲</span>
+                <select value={entry.visibility} onChange={(event) => updateSkill(index, { visibility: event.target.value as Visibility })}>
+                  <option value="team">チームに共有</option>
+                  <option value="assigner">アサイン検討者だけに共有</option>
+                  <option value="private">自分だけ</option>
+                </select>
+              </label>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <div className="save-bar">
+        <button className="text-button" onClick={() => navigate({ page: 'member', id: currentUser.id })}>表示を確認</button>
+        <button className="primary-button" onClick={save}><Save /> 変更を保存</button>
+      </div>
+
+      {adding && (
+        <SkillModal
+          onClose={() => setAdding(false)}
+          onAdd={(entry) => { setForm({ ...form, skills: [...form.skills, entry] }); setAdding(false); }}
+        />
+      )}
+    </div>
+  );
+}
+
+function SkillModal({ onClose, onAdd }: { onClose: () => void; onAdd: (entry: SkillEntry) => void }) {
+  const [entry, setEntry] = useState(emptySkill);
+  return (
+    <div className="modal-backdrop" onMouseDown={onClose}>
+      <div className="modal" onMouseDown={(event) => event.stopPropagation()}>
+        <h2>スキルを追加</h2>
+        <label className="form-field"><span>スキル名</span><input autoFocus value={entry.name} onChange={(e) => setEntry({ ...entry, name: e.target.value })} /></label>
+        <label className="form-field"><span>カテゴリー</span><select value={entry.category} onChange={(e) => setEntry({ ...entry, category: e.target.value })}><option>プロダクト</option><option>コミュニケーション</option><option>ブランド・制作</option><option>進行・仕組み</option></select></label>
+        <label className="form-field"><span>これからの意向</span><select value={entry.intent} onChange={(e) => setEntry({ ...entry, intent: e.target.value as SkillIntent })}>{intents.map((intent) => <option key={intent}>{intent}</option>)}</select></label>
+        <label className="form-field"><span>自分の言葉で補足</span><textarea value={entry.comment} onChange={(e) => setEntry({ ...entry, comment: e.target.value })} /></label>
+        <div className="modal-actions"><button className="text-button" onClick={onClose}>キャンセル</button><button className="primary-button" disabled={!entry.name.trim()} onClick={() => onAdd(entry)}>追加する</button></div>
+      </div>
+    </div>
+  );
+}

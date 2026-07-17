@@ -1,3 +1,91 @@
-import {useState}from'react';import{Users,Sparkles,UserRound,ChevronDown,RotateCcw,Info}from'lucide-react';import{useStore,roleName}from'./store';import TeamPage from'./pages/TeamPage';import WorkPage from'./pages/WorkPage';import ProfilePage from'./pages/ProfilePage';import DetailPage from'./pages/DetailPage';
-export type Route={page:'team'|'work'|'profile'|'detail';id?:string};
-export default function App(){const[route,setRoute]=useState<Route>({page:'team'});const[menu,setMenu]=useState(false);const{members,viewer,viewerId,setViewerId,reset}=useStore();const nav=(r:Route)=>{setRoute(r);scrollTo(0,0)};return <div><header className="header"><button className="brand" onClick={()=>nav({page:'team'})}><span className="brandmark">t</span><span>Talkship</span></button><nav aria-label="メインメニュー"><button className={route.page==='team'||route.page==='detail'?'active':''} onClick={()=>nav({page:'team'})}><Users/>チーム</button><button className={route.page==='work'?'active':''} onClick={()=>nav({page:'work'})}><Sparkles/>仕事から考える</button><button className={route.page==='profile'?'active':''} onClick={()=>nav({page:'profile'})}><UserRound/>プロフィール更新</button></nav><div className="viewer"><button onClick={()=>setMenu(!menu)}><span className="avatar small" style={{background:viewer.accent}}>{viewer.initials}</span><span><b>{viewer.name}</b><small>{roleName(viewer.role)}</small></span><ChevronDown/></button>{menu&&<div className="viewer-menu"><p>表示するユーザー</p>{members.map(m=><button key={m.id} className={m.id===viewerId?'selected':''} onClick={()=>{setViewerId(m.id);setMenu(false)}}><span className="avatar mini" style={{background:m.accent}}>{m.initials}</span><span>{m.name}<small>{roleName(m.role)}</small></span></button>)}<button className="reset" onClick={()=>{reset();setMenu(false)}}><RotateCcw/>デモデータに戻す</button></div>}</div></header><main>{route.page==='team'&&<TeamPage navigate={nav}/>} {route.page==='work'&&<WorkPage navigate={nav}/>} {route.page==='profile'&&<ProfilePage/>} {route.page==='detail'&&<DetailPage id={route.id!} navigate={nav}/>}</main><footer><Info/> このツールは人事評価や査定には使用しません。アサイン検討と本人との対話を支援するためのものです。</footer></div>}
+import { useState } from 'react';
+import { LogOut, Map, RotateCcw, Settings, UserRound } from 'lucide-react';
+import { useStore } from './store';
+import AdminPage from './pages/AdminPage';
+import DetailPage from './pages/DetailPage';
+import LoginPage from './pages/LoginPage';
+import ProfilePage from './pages/ProfilePage';
+import TeamMapPage from './pages/TeamMapPage';
+
+export type Route =
+  | { page: 'map'; skill?: string }
+  | { page: 'member'; id: string }
+  | { page: 'profile' }
+  | { page: 'admin' };
+
+export default function App() {
+  const { currentUser, logout, reset } = useStore();
+  const [route, setRoute] = useState<Route>({ page: 'map' });
+  const [accountOpen, setAccountOpen] = useState(false);
+
+  if (!currentUser) return <LoginPage />;
+
+  const navigate = (next: Route) => {
+    setRoute(next);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  return (
+    <div className="app-shell">
+      <header className="app-header">
+        <button className="brand" onClick={() => navigate({ page: 'map' })}>
+          <span className="brand-mark">T</span>
+          <span>Talkship</span>
+        </button>
+
+        <nav aria-label="メインメニュー">
+          <button
+            className={route.page === 'map' || route.page === 'member' ? 'active' : ''}
+            onClick={() => navigate({ page: 'map' })}
+          >
+            <Map /> チームマップ
+          </button>
+          <button
+            className={route.page === 'profile' ? 'active' : ''}
+            onClick={() => navigate({ page: 'profile' })}
+          >
+            <UserRound /> 自分のプロフィール
+          </button>
+          {currentUser.role === 'admin' && (
+            <button
+              className={route.page === 'admin' ? 'active' : ''}
+              onClick={() => navigate({ page: 'admin' })}
+            >
+              <Settings /> チーム管理
+            </button>
+          )}
+        </nav>
+
+        <div className="account">
+          <button className="account-button" onClick={() => setAccountOpen(!accountOpen)}>
+            <span className="avatar small" style={{ background: currentUser.accent }}>
+              {currentUser.initials}
+            </span>
+            <span>{currentUser.name}</span>
+          </button>
+          {accountOpen && (
+            <div className="account-menu">
+              <p>{currentUser.email}</p>
+              <button onClick={() => { navigate({ page: 'profile' }); setAccountOpen(false); }}>
+                <UserRound /> プロフィールを編集
+              </button>
+              <button onClick={logout}><LogOut /> ログアウト</button>
+              <button className="muted-action" onClick={reset}>
+                <RotateCcw /> デモデータをリセット
+              </button>
+            </div>
+          )}
+        </div>
+      </header>
+
+      <main>
+        {route.page === 'map' && (
+          <TeamMapPage initialSkill={route.skill} navigate={navigate} />
+        )}
+        {route.page === 'member' && <DetailPage id={route.id} navigate={navigate} />}
+        {route.page === 'profile' && <ProfilePage navigate={navigate} />}
+        {route.page === 'admin' && <AdminPage />}
+      </main>
+    </div>
+  );
+}

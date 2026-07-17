@@ -1,21 +1,101 @@
-import type {Member,Work} from './types';
-const vis='team' as const;
-export const members:Member[]=[
-{id:'m1',name:'山田 花子',initials:'山',roleLabel:'シニアデザイナー',role:'member',capacity:'少し余裕あり',updatedAt:'2026-07-12',accent:'#607bdf',skills:[{name:'情報設計',level:4,note:'複雑な情報を、相手に合わせて整理できます',visibility:vis},{name:'営業資料',level:4,visibility:vis},{name:'プレゼンテーション',level:3,visibility:vis}],interests:[{topic:'新規サービスの提案資料',level:'次に優先して挑戦したい',comment:'企画の段階から一緒に考えてみたいです。次に案件が出たら、ぜひ声をかけてください！',visibility:vis}],avoidances:[{topic:'短納期の量産制作',kind:'負荷を感じやすい',comment:'役割分担があると取り組みやすいです',visibility:'assigner'}],growth:['新しい領域に挑戦したい'],direction:'サービスデザインを伸ばし、企画と表現をつなぎたい',reflection:'条件次第でまたやりたい'},
-{id:'m2',name:'田中 花子',initials:'田',roleLabel:'デザイナー',role:'member',capacity:'少し余裕あり',updatedAt:'2026-07-15',accent:'#de7d66',skills:[{name:'営業資料',level:3,visibility:vis},{name:'情報整理',level:3,visibility:vis},{name:'Webデザイン',level:3,visibility:vis}],interests:[{topic:'大手企業向けの提案資料',level:'ぜひやりたい',comment:'重要な提案資料を、構成から担当してみたいです。',visibility:vis}],avoidances:[{topic:'大手顧客への単独プレゼン',kind:'サポートがあると取り組みやすい',visibility:vis}],growth:['専門性を深めたい'],direction:'情報を伝わる形にする力を深めたい'},
-{id:'m3',name:'佐藤 健',initials:'佐',roleLabel:'デザインリーダー',role:'assigner',capacity:'ほぼ埋まっている',updatedAt:'2026-07-10',accent:'#3d9375',skills:[{name:'UIデザイン',level:4,visibility:vis},{name:'デザインシステム',level:5,visibility:vis},{name:'エンジニア協働',level:4,visibility:vis}],interests:[{topic:'デザインシステムの整備',level:'機会があればやりたい',comment:'作って終わりではなく、運用まで一緒に考えたいです。',visibility:vis}],avoidances:[{topic:'緊急制作',kind:'今は避けたい',comment:'今月はプロダクト案件が集中しています',visibility:'assigner'}],growth:['得意分野をさらに伸ばしたい'],direction:'チームが継続的に改善できる仕組みをつくりたい'},
-{id:'m4',name:'高橋 葵',initials:'高',roleLabel:'UIデザイナー',role:'member',capacity:'余裕あり',updatedAt:'2026-07-16',accent:'#9872c4',skills:[{name:'UIデザイン',level:3,visibility:vis},{name:'プロトタイピング',level:3,visibility:vis},{name:'エンジニア協働',level:2,visibility:vis}],interests:[{topic:'新機能のUIデザイン',level:'次に優先して挑戦したい',comment:'要件整理からエンジニアと一緒に取り組みたいです。',visibility:vis}],avoidances:[{topic:'顧客向けプレゼン',kind:'経験が少ない',visibility:'private'}],growth:['専門性を深めたい'],direction:'プロダクトの体験全体を設計できるようになりたい'},
-{id:'m5',name:'伊藤 直樹',initials:'伊',roleLabel:'デザイナー',role:'member',capacity:'新しい仕事は難しい',updatedAt:'2026-06-21',accent:'#bf8a3f',skills:[{name:'グラフィックデザイン',level:4,visibility:vis},{name:'展示会制作',level:4,visibility:vis},{name:'進行管理',level:3,visibility:vis}],interests:[{topic:'ブランドデザイン',level:'機会があればやりたい',comment:'単発制作だけでなく、一貫したブランドづくりに関わりたいです。',visibility:vis}],avoidances:[{topic:'緊急のお知らせ制作',kind:'今は避けたい',visibility:'assigner'}],growth:['専門性を深めたい'],direction:'ブランドの考え方を複数の接点へ広げたい'},
-{id:'m6',name:'小林 美咲',initials:'小',roleLabel:'デザイナー',role:'member',capacity:'少し余裕あり',updatedAt:'2026-07-08',accent:'#498aa0',skills:[{name:'Webデザイン',level:4,visibility:vis},{name:'インタビュー',level:3,visibility:vis},{name:'言語化',level:3,visibility:vis}],interests:[{topic:'採用サイトの改善',level:'ぜひやりたい',comment:'働く人の声を丁寧に聞き、会社の魅力を言葉とデザインで伝えたいです。',visibility:vis}],avoidances:[],growth:['幅広い経験を積みたい'],direction:'人の声から、伝わるブランド体験をつくりたい'},
-{id:'m7',name:'中村 陸',initials:'中',roleLabel:'アシスタントデザイナー',role:'member',capacity:'余裕あり',updatedAt:'2026-07-14',accent:'#5981ae',skills:[{name:'資料デザイン',level:2,visibility:vis},{name:'UIデザイン',level:2,visibility:vis},{name:'プロトタイピング',level:2,visibility:vis}],interests:[{topic:'営業資料テンプレートの標準化',level:'ぜひやりたい',comment:'サポート付きで、仕組み化する仕事に挑戦したいです。',visibility:vis}],avoidances:[{topic:'単独での顧客対応',kind:'サポートがあると取り組みやすい',visibility:vis}],growth:['新しい領域に挑戦したい'],direction:'制作だけでなく、使われ続ける仕組みを考えたい'},
-{id:'m8',name:'鈴木 美咲',initials:'鈴',roleLabel:'デザイン部長',role:'admin',capacity:'ほぼ埋まっている',updatedAt:'2026-07-03',accent:'#465b80',skills:[{name:'ブランドデザイン',level:5,visibility:vis},{name:'レビュー',level:5,visibility:vis},{name:'企画設計',level:4,visibility:vis}],interests:[{topic:'若手へのレビュー支援',level:'機会があればやりたい',comment:'挑戦する人の壁打ちやレビューに時間を使いたいです。',visibility:vis}],avoidances:[],growth:['リーダーやマネジメントに挑戦したい'],direction:'一人ひとりが挑戦しやすいチームをつくりたい'}];
-const base={client:'',niceToHave:[],start:'7月下旬',deadline:'8月中旬',volume:'5〜8日',importance:'高',urgency:'通常',customer:false,learning:true};
-export const works:Work[]=[
-{...base,id:'w1',name:'大手企業向け営業資料',client:'営業部',summary:'大手企業向けの重要な提案資料を、構成からデザインまで支援します。',skills:['営業資料','情報整理','プレゼンテーション'],niceToHave:['大手顧客対応'],urgency:'やや急ぎ',customer:true,experience:'経営層に伝わる情報設計と提案資料制作'},
-{...base,id:'w2',name:'新規サービスの提案資料',client:'事業開発部',summary:'経営会議に向けた新規サービスの構想を整理し、提案資料にします。',skills:['情報設計','企画設計','プレゼンテーション'],experience:'上流工程での企画参加'},
-{...base,id:'w3',name:'新機能のUIデザイン',client:'プロダクトチーム',summary:'新機能の要件整理から画面設計、プロトタイプ制作を行います。',skills:['UIデザイン','プロトタイピング','エンジニア協働'],experience:'プロダクト開発の一連のプロセス'},
-{...base,id:'w4',name:'採用サイトの改善',client:'人事部',summary:'社員へのインタビューを通じて、採用サイトの情報と表現を改善します。',skills:['Webデザイン','インタビュー','言語化'],experience:'採用広報とブランド表現'},
-{...base,id:'w5',name:'展示会のクリエイティブ制作',client:'マーケティング部',summary:'パネル、資料、チラシなど複数の制作物をまとめて進行します。',skills:['グラフィックデザイン','展示会制作','進行管理'],urgency:'やや急ぎ',learning:false,experience:'複数制作物の進行と他部署調整'},
-{...base,id:'w6',name:'デザインシステムの整備',client:'プロダクト開発部',summary:'デザインルールとUIコンポーネントを整理し、運用方法を整えます。',skills:['デザインシステム','UIデザイン','エンジニア協働'],volume:'2〜3週間',experience:'仕組み化と継続的な改善'},
-{...base,id:'w7',name:'緊急のお知らせ制作',client:'カスタマーサポート',summary:'障害発生時の顧客向け案内ページと説明資料を至急制作します。',skills:['情報整理','Webデザイン','緊急対応'],start:'本日',deadline:'明日',volume:'1日',importance:'最重要',urgency:'緊急',learning:false,experience:'緊急時の情報設計'},
-{...base,id:'w8',name:'営業資料テンプレートの標準化',client:'営業企画部',summary:'誰でも使える営業資料テンプレートと運用ガイドを制作します。',skills:['資料デザイン','営業資料','進行管理'],experience:'制作物の仕組み化と運用設計'}];
+import type { Member, SkillEntry } from './types';
+
+const skill = (
+  name: string,
+  category: string,
+  level: SkillEntry['level'],
+  intent: SkillEntry['intent'],
+  comment: string,
+  visibility: SkillEntry['visibility'] = 'team',
+): SkillEntry => ({ name, category, level, intent, comment, visibility });
+
+export const seedMembers: Member[] = [
+  {
+    id: 'm1', name: '山田 花子', email: 'hanako@example.com', initials: '山',
+    roleLabel: 'シニアデザイナー', role: 'member', capacity: '少し余裕あり',
+    updatedAt: '2026-07-12', accent: '#6376C4', active: true,
+    direction: '企画と表現をつなぐサービスデザインを伸ばしたい', feedback: [],
+    skills: [
+      skill('情報設計', 'コミュニケーション', 4, '活かしたい', '複雑な情報を、相手に合わせて整理する仕事を続けたいです。'),
+      skill('営業資料', 'コミュニケーション', 4, '今は減らしたい', '経験は活かせますが、次は企画段階から関わる機会を増やしたいです。', 'assigner'),
+      skill('サービスデザイン', 'プロダクト', 2, '挑戦したい', '新規サービスの企画から一緒に考えてみたいです。'),
+    ],
+  },
+  {
+    id: 'm2', name: '田中 花子', email: 'tanaka@example.com', initials: '田',
+    roleLabel: 'デザイナー', role: 'member', capacity: '少し余裕あり',
+    updatedAt: '2026-07-15', accent: '#D47861', active: true,
+    direction: '情報を整理し、提案の説得力を高められるようになりたい', feedback: [],
+    skills: [
+      skill('営業資料', 'コミュニケーション', 3, '活かしたい', '重要な提案資料を、構成から担当してみたいです。'),
+      skill('情報設計', 'コミュニケーション', 3, '活かしたい', '相手に伝わる順序を考えることが得意です。'),
+      skill('ブランドデザイン', 'ブランド・制作', 1, '挑戦したい', '提案資料の経験をブランドづくりへ広げたいです。'),
+    ],
+  },
+  {
+    id: 'm3', name: '佐藤 健', email: 'sato@example.com', initials: '佐',
+    roleLabel: 'デザインリーダー', role: 'assigner', capacity: 'ほぼ埋まっている',
+    updatedAt: '2026-07-10', accent: '#3C8A70', active: true,
+    direction: 'チームが継続的に改善できる仕組みをつくりたい', feedback: [],
+    skills: [
+      skill('UIデザイン', 'プロダクト', 4, '機会があれば', '難しい画面のレビューや整理で力を活かせます。'),
+      skill('デザインシステム', 'プロダクト', 5, '活かしたい', '運用まで含めた仕組みづくりを進めたいです。'),
+      skill('緊急制作', 'ブランド・制作', 3, '今は避けたい', '今月はプロダクト案件が集中しています。', 'assigner'),
+    ],
+  },
+  {
+    id: 'm4', name: '高橋 葵', email: 'aoi@example.com', initials: '高',
+    roleLabel: 'UIデザイナー', role: 'member', capacity: '余裕あり',
+    updatedAt: '2026-07-16', accent: '#8B69AF', active: true,
+    direction: 'プロダクトの体験全体を設計できるようになりたい', feedback: [],
+    skills: [
+      skill('UIデザイン', 'プロダクト', 3, '活かしたい', '要件整理からエンジニアと一緒に取り組みたいです。'),
+      skill('プロトタイピング', 'プロダクト', 3, '活かしたい', '早い段階で触れる形にして対話を進めることが得意です。'),
+      skill('UXリサーチ', 'プロダクト', 1, '支援があれば', 'インタビュー設計のレビューがあれば挑戦したいです。'),
+    ],
+  },
+  {
+    id: 'm5', name: '伊藤 直樹', email: 'ito@example.com', initials: '伊',
+    roleLabel: 'デザイナー', role: 'member', capacity: '新しい仕事は難しい',
+    updatedAt: '2026-06-21', accent: '#B4823F', active: true,
+    direction: '単発制作の経験を、一貫したブランドづくりへ広げたい', feedback: [],
+    skills: [
+      skill('グラフィックデザイン', 'ブランド・制作', 4, '機会があれば', '品質を支えるレビューでも力を活かせます。'),
+      skill('展示会制作', 'ブランド・制作', 4, '今は減らしたい', '同種の制作が続いたため、しばらく量を減らしたいです。', 'assigner'),
+      skill('ブランドデザイン', 'ブランド・制作', 2, '挑戦したい', '複数の接点を通したブランドづくりを経験したいです。'),
+    ],
+  },
+  {
+    id: 'm6', name: '小林 美咲', email: 'kobayashi@example.com', initials: '小',
+    roleLabel: 'デザイナー', role: 'member', capacity: '少し余裕あり',
+    updatedAt: '2026-07-08', accent: '#40859A', active: true,
+    direction: '人の声から、伝わるブランド体験をつくりたい', feedback: [],
+    skills: [
+      skill('Webデザイン', 'ブランド・制作', 4, '活かしたい', '情報設計からビジュアルまで一貫して担当できます。'),
+      skill('インタビュー', 'コミュニケーション', 3, '活かしたい', '働く人の声を丁寧に聞く仕事を増やしたいです。'),
+      skill('言語化', 'コミュニケーション', 3, '機会があれば', 'デザインの意図を短い言葉にまとめられます。'),
+    ],
+  },
+  {
+    id: 'm7', name: '中村 陸', email: 'nakamura@example.com', initials: '中',
+    roleLabel: 'アシスタントデザイナー', role: 'member', capacity: '余裕あり',
+    updatedAt: '2026-07-14', accent: '#557DA9', active: true,
+    direction: '制作だけでなく、使われ続ける仕組みを考えたい', feedback: [],
+    skills: [
+      skill('資料デザイン', 'コミュニケーション', 2, '支援があれば', 'レビューを受けながら、テンプレート設計に挑戦したいです。'),
+      skill('UIデザイン', 'プロダクト', 2, '挑戦したい', '実務で画面設計の経験を増やしたいです。'),
+      skill('デザインシステム', 'プロダクト', 1, '挑戦したい', 'コンポーネントを整理する仕事に関心があります。'),
+    ],
+  },
+  {
+    id: 'm8', name: '鈴木 美咲', email: 'suzuki@example.com', initials: '鈴',
+    roleLabel: 'デザイン部長', role: 'admin', capacity: 'ほぼ埋まっている',
+    updatedAt: '2026-07-03', accent: '#405476', active: true,
+    direction: '一人ひとりが挑戦しやすいチームをつくりたい', feedback: [],
+    skills: [
+      skill('ブランドデザイン', 'ブランド・制作', 5, '機会があれば', '初期方針の壁打ちやレビューで支援したいです。'),
+      skill('レビュー', '進行・仕組み', 5, '活かしたい', '挑戦する人へのレビューに時間を使いたいです。'),
+      skill('企画設計', '進行・仕組み', 4, '活かしたい', '事業とデザインをつなぐ初期設計を支援できます。'),
+    ],
+  },
+];

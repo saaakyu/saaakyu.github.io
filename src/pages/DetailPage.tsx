@@ -1,3 +1,107 @@
-import{useState}from'react';import{ArrowLeft,MessageCircle,Pencil,LockKeyhole,Eye,Users,Check,Send}from'lucide-react';import{useStore}from'../store';import type{Route}from'../App';import type{Visibility}from'../types';
-const labels=['','学習中・経験が少ない','サポートがあればできる','一人で対応できる','他の人を支援・レビューできる','進め方やルールを設計できる'];const visIcon=(v:Visibility)=>v==='private'?<LockKeyhole/>:v==='assigner'?<Eye/>:<Users/>;const visLabel=(v:Visibility)=>v==='private'?'自分だけ':v==='assigner'?'アサイン検討者に共有':'チームに共有';
-export default function DetailPage({id,navigate}:{id:string;navigate:(r:Route)=>void}){const{members,viewer,saveMember}=useStore();const m=members.find(x=>x.id===id);const[modal,setModal]=useState<string>();const[reason,setReason]=useState('');if(!m)return null;const own=m.id===viewer.id;const allowed=(v:Visibility)=>own||v==='team'||(v==='assigner'&&viewer.role!=='member');const send=()=>{if(!modal||!reason)return;saveMember({...m,feedback:[...(m.feedback??[]),{id:crypto.randomUUID(),skill:modal,kind:'一度認識を合わせるとよさそう',reason,from:viewer.name,date:new Date().toISOString()}]});setModal(undefined);setReason('')};return <section className="detail-wrap"><button className="back" onClick={()=>navigate({page:'team'})}><ArrowLeft/>チームに戻る</button><div className="profile-hero"><span className="avatar xl" style={{background:m.accent}}>{m.initials}</span><div><p>{m.roleLabel}</p><h1>{m.name}</h1><span className={'capacity c-'+m.capacity}>{m.capacity}</span></div><button className="primary" onClick={()=>own?navigate({page:'profile'}):navigate({page:'work'})}>{own?<><Pencil/>プロフィールを更新</>:<><MessageCircle/>仕事について考える</>}</button></div><div className="quote"><span>次にやりたいこと</span><blockquote>「{m.interests.find(i=>allowed(i.visibility))?.comment??'まだ登録されていません'}」</blockquote></div><div className="detail-grid"><div className="detail-main"><section className="panel"><header><span className="num">01</span><div><h2>できること</h2><p>本人が登録した、仕事の取り組み方の目安です</p></div></header><div className="skill-list">{m.skills.filter(s=>allowed(s.visibility)).map(s=><div className="skill-row" key={s.name}><div><h3>{s.name}</h3><strong>{labels[s.level]}</strong>{s.note&&<p>{s.note}</p>}</div>{!own&&<button onClick={()=>setModal(s.name)}><MessageCircle/>フィードバック</button>}</div>)}</div></section><section className="panel"><header><span className="num">02</span><div><h2>やりたいこと</h2><p>本人の言葉を、そのまま表示しています</p></div></header>{m.interests.filter(i=>allowed(i.visibility)).map(i=><div className="interest-detail" key={i.topic}><div><span className="interest-level">{i.level}</span><h3>{i.topic}</h3><p>「{i.comment}」</p></div><small>{visIcon(i.visibility)}{visLabel(i.visibility)}</small></div>)}</section><section className="panel"><header><span className="num">03</span><div><h2>負荷を感じること・今は避けたいこと</h2><p>取り組みやすい条件を話すための情報です</p></div></header>{m.avoidances.filter(a=>allowed(a.visibility)).length?m.avoidances.filter(a=>allowed(a.visibility)).map(a=><div className="avoid-detail" key={a.topic}><div><span>{a.kind}</span><h3>{a.topic}</h3>{a.comment&&<p>{a.comment}</p>}</div><small>{visIcon(a.visibility)}{visLabel(a.visibility)}</small></div>):<p className="muted">共有されている項目はありません。</p>}</section></div><aside><section className="side-panel"><span className="num">04</span><h2>成長方針</h2>{m.growth.map(x=><span className="growth-chip" key={x}><Check/>{x}</span>)}</section><section className="side-panel"><span className="num">05</span><h2>今後の方向性</h2><p className="direction">{m.direction}</p></section>{own&&m.feedback?.length?<section className="side-panel feedback"><h2>届いたフィードバック</h2>{m.feedback.map(f=><div key={f.id}><strong>{f.skill}</strong><span>{f.kind}</span><p>「{f.reason}」</p><small>{f.from}・{new Date(f.date).toLocaleDateString('ja-JP')}</small></div>)}</section>:null}</aside></div>{modal&&<div className="modal-bg" onMouseDown={()=>setModal(undefined)}><div className="modal" onMouseDown={e=>e.stopPropagation()}><span className="modal-icon"><MessageCircle/></span><h2>{modal}について、言葉を届ける</h2><p>本人の登録内容を直接変更せず、対話のきっかけになる具体的な出来事を伝えます。</p><label>具体的な理由 <b>必須</b><textarea autoFocus value={reason} onChange={e=>setReason(e.target.value)} placeholder="例：先月の顧客向け説明では、質問対応まで一人で進められていました"/></label><div className="modal-actions"><button onClick={()=>setModal(undefined)}>キャンセル</button><button className="primary" disabled={!reason.trim()} onClick={send}><Send/>本人に送る</button></div></div></div>}</section>}
+import { ArrowLeft, CalendarDays, Edit3, MessageCircle } from 'lucide-react';
+import type { Route } from '../App';
+import { useStore } from '../store';
+import type { SkillIntent, Visibility } from '../types';
+
+const levelLabels = [
+  '',
+  '学んでいる途中',
+  'サポートがあれば取り組める',
+  '一人で対応できる',
+  '支援・レビューできる',
+  '進め方やルールを設計できる',
+];
+
+const intentGroups: { title: string; intents: SkillIntent[] }[] = [
+  { title: '得意を活かしたい', intents: ['活かしたい', '機会があれば'] },
+  { title: '次に挑戦したい', intents: ['挑戦したい', '支援があれば'] },
+  { title: '経験はあるが、今は減らしたい', intents: ['今は減らしたい'] },
+  { title: '今は避けたい', intents: ['今は避けたい'] },
+];
+
+export default function DetailPage({ id, navigate }: { id: string; navigate: (route: Route) => void }) {
+  const { members, currentUser } = useStore();
+  const member = members.find((item) => item.id === id);
+  if (!member || !currentUser) return null;
+
+  const isOwner = member.id === currentUser.id;
+  const canSee = (visibility: Visibility) =>
+    isOwner || visibility === 'team' ||
+    (visibility === 'assigner' && currentUser.role !== 'member');
+  const skills = member.skills.filter((entry) => canSee(entry.visibility));
+
+  return (
+    <div className="page-wrap member-detail">
+      <button className="back-button" onClick={() => navigate({ page: 'map' })}>
+        <ArrowLeft /> チームマップに戻る
+      </button>
+
+      <section className="member-header">
+        <span className="avatar large" style={{ background: member.accent }}>{member.initials}</span>
+        <div>
+          <p>{member.roleLabel}</p>
+          <h1>{member.name}</h1>
+          <span className={`capacity capacity-${member.capacity}`}>{member.capacity}</span>
+        </div>
+        {isOwner && (
+          <button className="primary-button" onClick={() => navigate({ page: 'profile' })}>
+            <Edit3 /> プロフィールを編集
+          </button>
+        )}
+      </section>
+
+      <section className="direction-panel">
+        <h2>これから大切にしたいこと</h2>
+        <p>{member.direction}</p>
+        <span><CalendarDays /> {new Date(member.updatedAt).toLocaleDateString('ja-JP')}に本人が確認</span>
+      </section>
+
+      <div className="member-content">
+        <div>
+          {intentGroups.map((group) => {
+            const entries = skills.filter((entry) => group.intents.includes(entry.intent));
+            if (!entries.length) return null;
+            return (
+              <section className="profile-section" key={group.title}>
+                <h2>{group.title}</h2>
+                <div className="profile-skill-list">
+                  {entries.map((entry) => (
+                    <article key={entry.name}>
+                      <div className="profile-skill-title">
+                        <div>
+                          <span>{entry.category}</span>
+                          <h3>{entry.name}</h3>
+                        </div>
+                        <span className={`intent-tag intent-tag-${entry.intent}`}>{entry.intent}</span>
+                      </div>
+                      <p>{entry.comment}</p>
+                      <small>経験の目安：{levelLabels[entry.level]}</small>
+                    </article>
+                  ))}
+                </div>
+              </section>
+            );
+          })}
+        </div>
+
+        <aside className="member-side">
+          <section>
+            <h2>プロフィールについて</h2>
+            <dl>
+              <div><dt>共有されているスキル</dt><dd>{skills.length}件</dd></div>
+              <div><dt>現在の余力</dt><dd>{member.capacity}</dd></div>
+              <div><dt>最終確認</dt><dd>{new Date(member.updatedAt).toLocaleDateString('ja-JP')}</dd></div>
+            </dl>
+          </section>
+          {!isOwner && currentUser.role !== 'member' && (
+            <section className="feedback-guide">
+              <MessageCircle />
+              <h2>認識を合わせたいとき</h2>
+              <p>本人の登録内容は変更せず、具体的な出来事を本人へ伝えて話してみましょう。</p>
+            </section>
+          )}
+        </aside>
+      </div>
+    </div>
+  );
+}
