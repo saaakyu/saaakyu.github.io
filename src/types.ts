@@ -1,0 +1,13 @@
+export type Role='member'|'assigner'|'admin';
+export type Capacity='余裕あり'|'少し余裕あり'|'ほぼ埋まっている'|'新しい仕事は難しい';
+export type Visibility='team'|'assigner'|'private';
+export type SkillLevel=1|2|3|4|5;
+export type InterestLevel='少し気になる'|'機会があればやりたい'|'ぜひやりたい'|'次に優先して挑戦したい';
+export type AvoidKind='経験が少ない'|'サポートがあると取り組みやすい'|'負荷を感じやすい'|'今は避けたい'|'今後克服したい'|'今後も優先したくない';
+export interface SkillEntry{name:string;level:SkillLevel;note?:string;visibility:Visibility}
+export interface Interest{topic:string;level:InterestLevel;comment:string;visibility:Visibility}
+export interface Avoidance{topic:string;kind:AvoidKind;comment?:string;visibility:Visibility}
+export interface Member{id:string;name:string;initials:string;roleLabel:string;role:Role;capacity:Capacity;updatedAt:string;skills:SkillEntry[];interests:Interest[];avoidances:Avoidance[];growth:string[];direction:string;accent:string;feedback?:Feedback[];reflection?:string}
+export interface Feedback{id:string;skill:string;kind:string;reason:string;from:string;date:string}
+export interface Work{id:string;name:string;client:string;summary:string;skills:string[];niceToHave:string[];start:string;deadline:string;volume:string;importance:string;urgency:string;customer:boolean;learning:boolean;experience:string}
+export type TeamMode='本人の成長を優先'|'バランス運営'|'業務遂行を優先'|'緊急対応';

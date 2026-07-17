@@ -1,0 +1,8 @@
+import {createContext,useContext,useEffect,useMemo,useState,type ReactNode} from 'react';
+import {members as seedMembers,works as seedWorks} from './data';
+import type {Member,Role,TeamMode,Work} from './types';
+interface Store{members:Member[];works:Work[];viewerId:string;viewer:Member;mode:TeamMode;setViewerId:(v:string)=>void;setMode:(v:TeamMode)=>void;saveMember:(m:Member)=>void;saveWork:(w:Work)=>void;reset:()=>void}
+const Context=createContext<Store|null>(null); const KEY='talkship-v1';
+export function StoreProvider({children}:{children:ReactNode}){const [state,setState]=useState<{members:Member[];works:Work[];viewerId:string;mode:TeamMode}>(()=>{try{const v=localStorage.getItem(KEY);return v?JSON.parse(v):{members:seedMembers,works:seedWorks,viewerId:'m3',mode:'バランス運営'}}catch{return {members:seedMembers,works:seedWorks,viewerId:'m3',mode:'バランス運営'}}}); useEffect(()=>localStorage.setItem(KEY,JSON.stringify(state)),[state]); const value=useMemo<Store>(()=>({...state,viewer:state.members.find(m=>m.id===state.viewerId)??state.members[0],setViewerId:v=>setState(s=>({...s,viewerId:v})),setMode:v=>setState(s=>({...s,mode:v})),saveMember:m=>setState(s=>({...s,members:s.members.map(x=>x.id===m.id?m:x)})),saveWork:w=>setState(s=>({...s,works:[w,...s.works.filter(x=>x.id!==w.id)]})),reset:()=>setState({members:seedMembers,works:seedWorks,viewerId:'m3',mode:'バランス運営'})}),[state]); return <Context.Provider value={value}>{children}</Context.Provider>}
+export function useStore(){const v=useContext(Context);if(!v)throw new Error('Store missing');return v}
+export const roleName=(r:Role)=>r==='member'?'メンバー':r==='assigner'?'アサイン検討者':'管理者';
