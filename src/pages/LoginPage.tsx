@@ -8,12 +8,12 @@ export default function LoginPage() {
   return (
     <main className="login-page">
       <section className="login-intro">
-        <div className="login-brand"><span className="brand-mark">M</span> チームマップ</div>
+        <div className="login-brand"><span className="brand-mark">M</span> Miwatashi</div>
         <div>
-          <h1>チームの「できる」と<br />「やりたい」を一緒に見る。</h1>
+          <h1>チームの経験と、<br />これからをみわたす。</h1>
           <p>
-            アサインに迷ったとき、経験だけでなく、次に挑戦したいことや
-            今は減らしたいことも思い出すためのチームマップです。
+            仕事のテーマごとに、経験、本人の感覚、これからの意向を
+            一緒に見るためのチームマップです。
           </p>
         </div>
         <p className="purpose-note">

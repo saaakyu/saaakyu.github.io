@@ -7,7 +7,7 @@ import {
   type ReactNode,
 } from 'react';
 import { seedMembers } from './data';
-import type { Member } from './types';
+import type { ExperienceVoice, Member } from './types';
 
 interface StoreValue {
   members: Member[];
@@ -16,10 +16,12 @@ interface StoreValue {
   logout: () => void;
   saveMember: (member: Member) => void;
   addMember: (member: Member) => void;
+  sendVoice: (memberId: string, voice: ExperienceVoice) => void;
+  markVoiceRead: (memberId: string, voiceId: string) => void;
   reset: () => void;
 }
 
-const STORAGE_KEY = 'team-skill-map-v3';
+const STORAGE_KEY = 'miwatashi-v1';
 const StoreContext = createContext<StoreValue | null>(null);
 
 export function StoreProvider({ children }: { children: ReactNode }) {
@@ -52,6 +54,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     saveMember: (updated) => setMembers((list) =>
       list.map((member) => member.id === updated.id ? updated : member)),
     addMember: (member) => setMembers((list) => [...list, member]),
+    sendVoice: (memberId, voice) => setMembers((list) => list.map((member) =>
+      member.id === memberId ? { ...member, voices: [...member.voices, voice] } : member)),
+    markVoiceRead: (memberId, voiceId) => setMembers((list) => list.map((member) =>
+      member.id === memberId
+        ? { ...member, voices: member.voices.map((voice) => voice.id === voiceId ? { ...voice, read: true } : voice) }
+        : member)),
     reset: () => {
       setMembers(seedMembers);
       setCurrentUserId(null);

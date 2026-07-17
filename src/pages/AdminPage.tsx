@@ -55,7 +55,7 @@ function MemberModal({ onClose, onAdd }: { onClose: () => void; onAdd: (member: 
   const submit = () => onAdd({
     id: crypto.randomUUID(), name, email, roleLabel: roleLabelText, role,
     initials: name.slice(0, 1), updatedAt: new Date().toISOString().slice(0, 10),
-    accent: '#60758F', direction: 'これから本人が登録します', skills: [], feedback: [], active: true,
+    accent: '#60758F', direction: 'これから本人が登録します', themes: [], voices: [], active: true,
   });
   return <div className="modal-backdrop" onMouseDown={onClose}><div className="modal" onMouseDown={(event) => event.stopPropagation()}><h2>メンバーを追加</h2><p>所属情報だけを登録します。経験や意向は本人が登録します。</p><label className="form-field"><span>氏名</span><input autoFocus value={name} onChange={(event) => setName(event.target.value)} /></label><label className="form-field"><span>メールアドレス</span><input type="email" value={email} onChange={(event) => setEmail(event.target.value)} /></label><label className="form-field"><span>表示上の役割</span><input value={roleLabelText} onChange={(event) => setRoleLabelText(event.target.value)} /></label><label className="form-field"><span>権限</span><select value={role} onChange={(event) => setRole(event.target.value as Role)}><option value="member">{roleLabel('member')}</option><option value="assigner">{roleLabel('assigner')}</option><option value="admin">{roleLabel('admin')}</option></select></label><div className="modal-actions"><button className="text-button" onClick={onClose}>キャンセル</button><button className="primary-button" disabled={!name.trim() || !email.trim()} onClick={submit}>追加する</button></div></div></div>;
 }

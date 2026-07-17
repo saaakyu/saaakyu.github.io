@@ -30,7 +30,7 @@ export default function App() {
       <header className="app-header">
         <button className="brand" onClick={() => navigate({ page: 'map' })}>
           <span className="brand-mark">M</span>
-          <span>チームマップ</span>
+          <span>Miwatashi</span>
         </button>
 
         <nav aria-label="メインメニュー">
