@@ -1,0 +1,202 @@
+import { useState } from 'react';
+import { ChevronRight, MessageCircle, Search, Undo2, X } from 'lucide-react';
+import type { Route } from '../App';
+import { themeDefinitions } from '../data';
+import { useStore } from '../store';
+import type {
+  ComfortLevel,
+  ExperienceLevel,
+  ExperienceVoice,
+  Member,
+  ThemeEntry,
+  ThemeIntent,
+  Visibility,
+} from '../types';
+
+const experienceLabels = ['まだ経験がない', '少し経験した', '複数回経験した', '継続的に経験', '人を支援できる'];
+const comfortLabels = ['自然に取り組める', '比較的取り組みやすい', '少し不安がある', '苦手意識がある'];
+const intentClass: Record<ThemeIntent, string> = {
+  活かしたい: 'positive', 挑戦したい: 'challenge', 支援があれば挑戦したい: 'challenge',
+  機会があれば: 'neutral', 今は減らしたい: 'reduce', 今は避けたい: 'avoid',
+  今後も優先したくない: 'avoid', まだ分からない: 'neutral',
+};
+
+interface MapEntry { member: Member; theme: ThemeEntry }
+interface UndoState { member: Member; previous?: ThemeEntry; themeName: string }
+
+export default function TeamMapPage({ initialSkill, navigate }: { initialSkill?: string; navigate: (route: Route) => void }) {
+  const { members, currentUser, saveMember, sendVoice } = useStore();
+  const [query, setQuery] = useState('');
+  const [category, setCategory] = useState('すべて');
+  const [selectedTheme, setSelectedTheme] = useState(initialSkill ?? '人前で話す');
+  const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null);
+  const [dragging, setDragging] = useState(false);
+  const [undoState, setUndoState] = useState<UndoState | null>(null);
+  const [voiceTarget, setVoiceTarget] = useState<MapEntry | null>(null);
+
+  if (!currentUser) return null;
+  const activeMembers = members.filter((member) => member.active);
+  const definition = themeDefinitions.find((item) => item.name === selectedTheme) ?? themeDefinitions[0];
+  const canSee = (visibility: Visibility, ownerId: string) =>
+    ownerId === currentUser.id || visibility === 'team' ||
+    (visibility === 'assigner' && currentUser.role !== 'member');
+  const entries: MapEntry[] = activeMembers.flatMap((member) => {
+    const theme = member.themes.find((item) => item.name === definition.name && canSee(item.visibility, member.id));
+    return theme ? [{ member, theme }] : [];
+  });
+  const unregistered = activeMembers.filter((member) => !entries.some((entry) => entry.member.id === member.id));
+  const selectedEntry = entries.find((entry) => entry.member.id === selectedMemberId);
+  const categories = ['すべて', ...new Set(themeDefinitions.map((item) => item.category))];
+  const visibleThemes = themeDefinitions.filter((item) =>
+    item.name.includes(query) && (category === 'すべて' || item.category === category));
+
+  const placeCurrentUser = (experience: ExperienceLevel, comfort: ComfortLevel) => {
+    const previous = currentUser.themes.find((item) => item.name === definition.name);
+    const next: ThemeEntry = previous
+      ? { ...previous, experience, comfort }
+      : {
+          name: definition.name, category: definition.category, experience, comfort,
+          intent: 'まだ分からない', comment: 'これからコメントを追加します。', tags: [], visibility: 'team',
+        };
+    saveMember({
+      ...currentUser,
+      updatedAt: new Date().toISOString().slice(0, 10),
+      themes: [...currentUser.themes.filter((item) => item.name !== definition.name), next],
+    });
+    setSelectedMemberId(currentUser.id);
+    setUndoState({ member: currentUser, previous, themeName: definition.name });
+    setDragging(false);
+  };
+
+  const undo = () => {
+    if (!undoState) return;
+    const themes = undoState.previous
+      ? [...undoState.member.themes.filter((item) => item.name !== undoState.themeName), undoState.previous]
+      : undoState.member.themes.filter((item) => item.name !== undoState.themeName);
+    saveMember({ ...undoState.member, themes });
+    setUndoState(null);
+  };
+
+  const openTheme = (name: string) => {
+    setSelectedTheme(name);
+    setSelectedMemberId(null);
+    setUndoState(null);
+  };
+
+  return (
+    <div className="map-page">
+      <section className="map-page-heading">
+        <div><h1>チームの経験と意向</h1><p>テーマごとに、経験、本人の感覚、これからの意向をみわたします。</p></div>
+        <p className="self-report-note">マップの位置は本人が登録しています</p>
+      </section>
+
+      <div className="map-workspace">
+        <aside className="skill-navigation" aria-label="仕事のテーマ一覧">
+          <div className="skill-search"><Search /><input aria-label="テーマを検索" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="テーマを検索" /></div>
+          <div className="category-tabs" aria-label="カテゴリー">
+            {categories.map((item) => <button className={category === item ? 'selected' : ''} key={item} onClick={() => setCategory(item)}>{item}</button>)}
+          </div>
+          <div className="compact-skill-list">
+            {visibleThemes.map((item) => {
+              const count = activeMembers.filter((member) => member.themes.some((theme) => theme.name === item.name)).length;
+              return <button className={definition.name === item.name ? 'selected' : ''} key={item.name} onClick={() => openTheme(item.name)}><span><strong>{item.name}</strong><small>{item.category}</small></span><span className="skill-count">{count}人</span></button>;
+            })}
+          </div>
+        </aside>
+
+        <section className="skill-map-area">
+          <header className="skill-map-header">
+            <div><span>{definition.category}</span><h2>{definition.name}</h2><p>{definition.description}</p></div>
+            <div className="map-legend"><span><i className="legend-self" />自分</span><span><i className="legend-voice" />経験の声あり</span></div>
+          </header>
+
+          <p className="axis-title-y">本人の感覚</p>
+          <div className={`matrix-wrap ${dragging ? 'is-dragging' : ''}`}>
+            <div className="matrix-corner" />
+            {experienceLabels.map((label) => <div className="experience-label" key={label}>{label}</div>)}
+            {comfortLabels.map((comfortLabel, rowIndex) => {
+              const comfort = (4 - rowIndex) as ComfortLevel;
+              return <div className="matrix-row" key={comfortLabel}>
+                <div className="intent-label">{comfortLabel}</div>
+                {experienceLabels.map((_, columnIndex) => {
+                  const experience = (columnIndex + 1) as ExperienceLevel;
+                  const cellEntries = entries.filter((entry) => entry.theme.experience === experience && entry.theme.comfort === comfort);
+                  return <div
+                    className={`matrix-cell comfort-${comfort}`}
+                    key={experience}
+                    onDragOver={(event) => { if (dragging) event.preventDefault(); }}
+                    onDrop={(event) => { event.preventDefault(); placeCurrentUser(experience, comfort); }}
+                  >
+                    {cellEntries.map((entry) => {
+                      const isSelf = entry.member.id === currentUser.id;
+                      return <button
+                        className={`matrix-person ${isSelf ? 'is-self' : ''} ${selectedMemberId === entry.member.id ? 'selected' : ''}`}
+                        draggable={isSelf}
+                        key={entry.member.id}
+                        onDragStart={() => { if (isSelf) setDragging(true); }}
+                        onDragEnd={() => setDragging(false)}
+                        onClick={() => setSelectedMemberId(entry.member.id)}
+                      >
+                        <span className="avatar" style={{ background: entry.member.accent }}>{entry.member.initials}</span>
+                        <span>{entry.member.name.split(' ')[0]}</span>
+                        <small className={`intent-pill ${intentClass[entry.theme.intent]}`}>{entry.theme.intent}</small>
+                        {entry.member.voices.some((voice) => voice.theme === definition.name) && <i className="voice-marker" aria-label="経験の声あり" />}
+                      </button>;
+                    })}
+                  </div>;
+                })}
+              </div>;
+            })}
+          </div>
+          <p className="axis-title-x">経験の積み重ね <span>→</span></p>
+
+          <div className="unregistered-area">
+            <div><strong>まだ位置を登録していないメンバー</strong><span>{unregistered.length}人</span></div>
+            <div className="unregistered-people">
+              {unregistered.map((member) => <button
+                className={member.id === currentUser.id ? 'is-self' : ''}
+                draggable={member.id === currentUser.id}
+                key={member.id}
+                onDragStart={() => { if (member.id === currentUser.id) setDragging(true); }}
+                onDragEnd={() => setDragging(false)}
+                onClick={() => setSelectedMemberId(member.id)}
+              ><span className="avatar" style={{ background: member.accent }}>{member.initials}</span>{member.name}</button>)}
+            </div>
+            {unregistered.some((member) => member.id === currentUser.id) && <p>自分のアイコンをマップへドラッグして、近いと感じる場所に置けます。</p>}
+          </div>
+
+          {selectedEntry && <MapInspector
+            entry={selectedEntry}
+            canSendVoice={selectedEntry.member.id !== currentUser.id && currentUser.role !== 'member'}
+            onClose={() => setSelectedMemberId(null)}
+            onProfile={() => navigate({ page: 'member', id: selectedEntry.member.id })}
+            onVoice={() => setVoiceTarget(selectedEntry)}
+          />}
+        </section>
+      </div>
+
+      {undoState && <div className="undo-toast">位置を更新しました<button onClick={undo}><Undo2 />元に戻す</button></div>}
+      {voiceTarget && <VoiceModal target={voiceTarget} sender={currentUser} onClose={() => setVoiceTarget(null)} onSend={(voice) => { sendVoice(voiceTarget.member.id, voice); setVoiceTarget(null); }} />}
+    </div>
+  );
+}
+
+function MapInspector({ entry, canSendVoice, onClose, onProfile, onVoice }: { entry: MapEntry; canSendVoice: boolean; onClose: () => void; onProfile: () => void; onVoice: () => void }) {
+  return <aside className="map-inspector">
+    <button className="inspector-close" onClick={onClose} aria-label="詳細を閉じる"><X /></button>
+    <div className="inspector-person"><span className="avatar" style={{ background: entry.member.accent }}>{entry.member.initials}</span><div><h3>{entry.member.name}</h3><p>{entry.member.roleLabel}</p></div></div>
+    <dl><div><dt>経験</dt><dd>{experienceLabels[entry.theme.experience - 1]}</dd></div><div><dt>本人の感覚</dt><dd>{comfortLabels[4 - entry.theme.comfort]}</dd></div><div><dt>これから</dt><dd>{entry.theme.intent}</dd></div></dl>
+    <blockquote>「{entry.theme.comment}」</blockquote>
+    <div className="tag-list">{entry.theme.tags.map((tag) => <span key={tag}>{tag}</span>)}</div>
+    {canSendVoice && <button className="voice-button" onClick={onVoice}><MessageCircle />このテーマについて声を送る</button>}
+    <button className="profile-link" onClick={onProfile}>プロフィール全体を見る <ChevronRight /></button>
+  </aside>;
+}
+
+function VoiceModal({ target, sender, onClose, onSend }: { target: MapEntry; sender: Member; onClose: () => void; onSend: (voice: ExperienceVoice) => void }) {
+  const [kind, setKind] = useState('本人が思っている以上に経験がありそう');
+  const [event, setEvent] = useState('');
+  const [message, setMessage] = useState('');
+  const submit = () => onSend({ id: crypto.randomUUID(), theme: target.theme.name, kind, event, message, fromId: sender.id, fromName: sender.name, date: new Date().toISOString(), read: false });
+  return <div className="modal-backdrop" onMouseDown={onClose}><div className="modal voice-modal" onMouseDown={(e) => e.stopPropagation()}><h2>経験の声を送る</h2><p>{target.member.name}さんへ、位置を変える指示ではなく、気付いた具体的な出来事を届けます。</p><label className="form-field"><span>伝えたいこと</span><select value={kind} onChange={(e) => setKind(e.target.value)}><option>本人が思っている以上に経験がありそう</option><option>自然に取り組めているように見えた</option><option>この力を活かしていた場面があった</option><option>一度、認識を話してみたい</option></select></label><label className="form-field"><span>具体的な出来事（必須）</span><textarea value={event} onChange={(e) => setEvent(e.target.value)} placeholder="いつ、どのような場面でそう感じたかを書いてください" /></label><label className="form-field"><span>一言メッセージ（任意）</span><textarea value={message} onChange={(e) => setMessage(e.target.value)} /></label><div className="modal-actions"><button className="text-button" onClick={onClose}>キャンセル</button><button className="primary-button" disabled={!event.trim()} onClick={submit}>本人に送る</button></div></div></div>;
+}
