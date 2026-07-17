@@ -46,12 +46,12 @@ export default function App() {
           >
             <UserRound /> 自分のプロフィール
           </button>
-          {currentUser.role === 'admin' && (
+          {currentUser.role !== 'member' && (
             <button
               className={route.page === 'admin' ? 'active' : ''}
               onClick={() => navigate({ page: 'admin' })}
             >
-              <Settings /> チーム管理
+              <Settings /> 管理
             </button>
           )}
         </nav>

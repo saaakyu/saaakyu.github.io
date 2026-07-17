@@ -1,12 +1,13 @@
 import { useState } from 'react';
 import { Check, Plus, UserMinus, UserPlus } from 'lucide-react';
 import { roleLabel, useStore } from '../store';
-import type { Member, Role } from '../types';
+import type { Member, Role, ThemeDefinition } from '../types';
 
 export default function AdminPage() {
-  const { members, saveMember, addMember } = useStore();
+  const { members, currentUser, saveMember, addMember, themeDefinitions, saveThemeDefinition } = useStore();
   const [adding, setAdding] = useState(false);
   const [notice, setNotice] = useState('');
+  const [themeName, setThemeName] = useState('');
 
   const update = (member: Member, patch: Partial<Member>) => {
     saveMember({ ...member, ...patch });
@@ -18,14 +19,16 @@ export default function AdminPage() {
     <div className="page-wrap admin-page">
       <section className="page-heading">
         <div>
-          <h1>チーム管理</h1>
-          <p>所属と権限を管理します。本人の経験や意向は変更できません。</p>
+          <h1>管理</h1>
+          <p>チームで使うテーマとメンバーを管理します。</p>
         </div>
-        <button className="primary-button" onClick={() => setAdding(true)}><UserPlus /> メンバーを追加</button>
+        {currentUser?.role === 'admin' && <button className="primary-button" onClick={() => setAdding(true)}><UserPlus /> メンバーを追加</button>}
       </section>
       {notice && <div className="notice"><Check />{notice}</div>}
 
-      <section className="member-table-wrap">
+      <section className="theme-admin"><div className="edit-section-heading"><div><h2>仕事のテーマ</h2><p>チームで普段使う動詞を追加し、使わなくなったテーマは利用終了にできます。</p></div><div className="theme-add"><input value={themeName} onChange={(e) => setThemeName(e.target.value)} placeholder="例：試す" /><button className="secondary-button" disabled={!themeName.trim()} onClick={() => { const theme: ThemeDefinition = { id: crypto.randomUUID(), name: themeName.trim(), category: 'その他', description: '', active: true, order: themeDefinitions.length }; saveThemeDefinition(theme); setThemeName(''); }}><Plus />追加</button></div></div><div className="theme-admin-list">{themeDefinitions.map((theme) => <div className={!theme.active ? 'inactive' : ''} key={theme.id}><span><strong>{theme.name}</strong><small>{theme.description || '説明はまだありません'}</small></span><button onClick={() => saveThemeDefinition({ ...theme, active: !theme.active })}>{theme.active ? '利用を終了' : '利用を再開'}</button></div>)}</div></section>
+
+      {currentUser?.role === 'admin' && <section className="member-table-wrap">
         <table className="member-table">
           <thead><tr><th>メンバー</th><th>表示上の役割</th><th>権限</th><th>状態</th><th></th></tr></thead>
           <tbody>
@@ -40,7 +43,7 @@ export default function AdminPage() {
             ))}
           </tbody>
         </table>
-      </section>
+      </section>}
 
       {adding && <MemberModal onClose={() => setAdding(false)} onAdd={(member) => { addMember(member); setAdding(false); }} />}
     </div>
@@ -55,7 +58,7 @@ function MemberModal({ onClose, onAdd }: { onClose: () => void; onAdd: (member: 
   const submit = () => onAdd({
     id: crypto.randomUUID(), name, email, roleLabel: roleLabelText, role,
     initials: name.slice(0, 1), updatedAt: new Date().toISOString().slice(0, 10),
-    accent: '#60758F', direction: 'これから本人が登録します', themes: [], voices: [], active: true,
+    accent: '#60758F', direction: 'これから本人が登録します', overall: { x: 50, y: 50, comment: '' }, themes: [], voices: [], active: true,
   });
   return <div className="modal-backdrop" onMouseDown={onClose}><div className="modal" onMouseDown={(event) => event.stopPropagation()}><h2>メンバーを追加</h2><p>所属情報だけを登録します。経験や意向は本人が登録します。</p><label className="form-field"><span>氏名</span><input autoFocus value={name} onChange={(event) => setName(event.target.value)} /></label><label className="form-field"><span>メールアドレス</span><input type="email" value={email} onChange={(event) => setEmail(event.target.value)} /></label><label className="form-field"><span>表示上の役割</span><input value={roleLabelText} onChange={(event) => setRoleLabelText(event.target.value)} /></label><label className="form-field"><span>権限</span><select value={role} onChange={(event) => setRole(event.target.value as Role)}><option value="member">{roleLabel('member')}</option><option value="assigner">{roleLabel('assigner')}</option><option value="admin">{roleLabel('admin')}</option></select></label><div className="modal-actions"><button className="text-button" onClick={onClose}>キャンセル</button><button className="primary-button" disabled={!name.trim() || !email.trim()} onClick={submit}>追加する</button></div></div></div>;
 }

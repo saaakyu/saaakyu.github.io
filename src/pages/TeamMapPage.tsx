@@ -1,7 +1,6 @@
-import { useState } from 'react';
-import { ChevronRight, MessageCircle, Search, Undo2, X } from 'lucide-react';
+import { useState, type DragEvent } from 'react';
+import { ChevronRight, Edit3, Search, Undo2, X } from 'lucide-react';
 import type { Route } from '../App';
-import { themeDefinitions } from '../data';
 import { useStore } from '../store';
 import type {
   ComfortLevel,
@@ -25,14 +24,15 @@ interface MapEntry { member: Member; theme: ThemeEntry }
 interface UndoState { member: Member; previous?: ThemeEntry; themeName: string }
 
 export default function TeamMapPage({ initialSkill, navigate }: { initialSkill?: string; navigate: (route: Route) => void }) {
-  const { members, currentUser, saveMember, sendVoice } = useStore();
+  const { members, currentUser, saveMember, sendVoice, removeVoice, themeDefinitions } = useStore();
+  const [view, setView] = useState<'current' | 'themes'>('current');
   const [query, setQuery] = useState('');
   const [category, setCategory] = useState('すべて');
   const [selectedTheme, setSelectedTheme] = useState(initialSkill ?? '人前で話す');
   const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null);
   const [dragging, setDragging] = useState(false);
   const [undoState, setUndoState] = useState<UndoState | null>(null);
-  const [voiceTarget, setVoiceTarget] = useState<MapEntry | null>(null);
+  const [lastVoice, setLastVoice] = useState<{ memberId: string; voiceId: string; name: string } | null>(null);
 
   if (!currentUser) return null;
   const activeMembers = members.filter((member) => member.active);
@@ -56,7 +56,7 @@ export default function TeamMapPage({ initialSkill, navigate }: { initialSkill?:
       ? { ...previous, experience, comfort }
       : {
           name: definition.name, category: definition.category, experience, comfort,
-          intent: 'まだ分からない', comment: 'これからコメントを追加します。', tags: [], visibility: 'team',
+          intent: 'まだ分からない', comment: '', tags: [], visibility: 'team',
         };
     saveMember({
       ...currentUser,
@@ -78,17 +78,30 @@ export default function TeamMapPage({ initialSkill, navigate }: { initialSkill?:
   };
 
   const openTheme = (name: string) => {
+    setView('themes');
     setSelectedTheme(name);
     setSelectedMemberId(null);
     setUndoState(null);
   };
 
+  const sendQuickVoice = (entry: MapEntry, reaction: string) => {
+    const voice: ExperienceVoice = { id: crypto.randomUUID(), theme: entry.theme.name, kind: reaction, message: '', fromId: currentUser.id, fromName: currentUser.name, date: new Date().toISOString(), read: false };
+    sendVoice(entry.member.id, voice);
+    setLastVoice({ memberId: entry.member.id, voiceId: voice.id, name: entry.member.name.split(' ')[0] });
+  };
+
+  if (view === 'current') return <div className="map-page">
+    <MapPageHeading view={view} setView={setView} />
+    <OverallMap members={activeMembers} currentUser={currentUser} saveMember={saveMember} navigate={navigate} sendVoice={(member, reaction) => {
+      const voice: ExperienceVoice = { id: crypto.randomUUID(), theme: 'チームの現在地', kind: reaction, message: '', fromId: currentUser.id, fromName: currentUser.name, date: new Date().toISOString(), read: false };
+      sendVoice(member.id, voice); setLastVoice({ memberId: member.id, voiceId: voice.id, name: member.name.split(' ')[0] });
+    }} />
+    {lastVoice && <VoiceToast name={lastVoice.name} onUndo={() => { removeVoice(lastVoice.memberId, lastVoice.voiceId); setLastVoice(null); }} />}
+  </div>;
+
   return (
     <div className="map-page">
-      <section className="map-page-heading">
-        <div><h1>チームの経験と意向</h1><p>テーマごとに、経験、本人の感覚、これからの意向をみわたします。</p></div>
-        <p className="self-report-note">マップの位置は本人が登録しています</p>
-      </section>
+      <MapPageHeading view={view} setView={setView} />
 
       <div className="map-workspace">
         <aside className="skill-navigation" aria-label="仕事のテーマ一覧">
@@ -167,36 +180,58 @@ export default function TeamMapPage({ initialSkill, navigate }: { initialSkill?:
 
           {selectedEntry && <MapInspector
             entry={selectedEntry}
-            canSendVoice={selectedEntry.member.id !== currentUser.id && currentUser.role !== 'member'}
+            canSendVoice={selectedEntry.member.id !== currentUser.id}
             onClose={() => setSelectedMemberId(null)}
             onProfile={() => navigate({ page: 'member', id: selectedEntry.member.id })}
-            onVoice={() => setVoiceTarget(selectedEntry)}
+            onVoice={(reaction) => sendQuickVoice(selectedEntry, reaction)}
           />}
         </section>
       </div>
 
       {undoState && <div className="undo-toast">位置を更新しました<button onClick={undo}><Undo2 />元に戻す</button></div>}
-      {voiceTarget && <VoiceModal target={voiceTarget} sender={currentUser} onClose={() => setVoiceTarget(null)} onSend={(voice) => { sendVoice(voiceTarget.member.id, voice); setVoiceTarget(null); }} />}
+      {lastVoice && <VoiceToast name={lastVoice.name} onUndo={() => { removeVoice(lastVoice.memberId, lastVoice.voiceId); setLastVoice(null); }} />}
     </div>
   );
 }
 
-function MapInspector({ entry, canSendVoice, onClose, onProfile, onVoice }: { entry: MapEntry; canSendVoice: boolean; onClose: () => void; onProfile: () => void; onVoice: () => void }) {
+function MapInspector({ entry, canSendVoice, onClose, onProfile, onVoice }: { entry: MapEntry; canSendVoice: boolean; onClose: () => void; onProfile: () => void; onVoice: (reaction: string) => void }) {
   return <aside className="map-inspector">
     <button className="inspector-close" onClick={onClose} aria-label="詳細を閉じる"><X /></button>
     <div className="inspector-person"><span className="avatar" style={{ background: entry.member.accent }}>{entry.member.initials}</span><div><h3>{entry.member.name}</h3><p>{entry.member.roleLabel}</p></div></div>
     <dl><div><dt>経験</dt><dd>{experienceLabels[entry.theme.experience - 1]}</dd></div><div><dt>本人の感覚</dt><dd>{comfortLabels[4 - entry.theme.comfort]}</dd></div><div><dt>これから</dt><dd>{entry.theme.intent}</dd></div></dl>
-    <blockquote>「{entry.theme.comment}」</blockquote>
+    {entry.theme.comment && <blockquote>「{entry.theme.comment}」</blockquote>}
     <div className="tag-list">{entry.theme.tags.map((tag) => <span key={tag}>{tag}</span>)}</div>
-    {canSendVoice && <button className="voice-button" onClick={onVoice}><MessageCircle />このテーマについて声を送る</button>}
+    {canSendVoice && <QuickVoices onSend={onVoice} />}
     <button className="profile-link" onClick={onProfile}>プロフィール全体を見る <ChevronRight /></button>
   </aside>;
 }
 
-function VoiceModal({ target, sender, onClose, onSend }: { target: MapEntry; sender: Member; onClose: () => void; onSend: (voice: ExperienceVoice) => void }) {
-  const [kind, setKind] = useState('本人が思っている以上に経験がありそう');
-  const [event, setEvent] = useState('');
-  const [message, setMessage] = useState('');
-  const submit = () => onSend({ id: crypto.randomUUID(), theme: target.theme.name, kind, event, message, fromId: sender.id, fromName: sender.name, date: new Date().toISOString(), read: false });
-  return <div className="modal-backdrop" onMouseDown={onClose}><div className="modal voice-modal" onMouseDown={(e) => e.stopPropagation()}><h2>経験の声を送る</h2><p>{target.member.name}さんへ、位置を変える指示ではなく、気付いた具体的な出来事を届けます。</p><label className="form-field"><span>伝えたいこと</span><select value={kind} onChange={(e) => setKind(e.target.value)}><option>本人が思っている以上に経験がありそう</option><option>自然に取り組めているように見えた</option><option>この力を活かしていた場面があった</option><option>一度、認識を話してみたい</option></select></label><label className="form-field"><span>具体的な出来事（必須）</span><textarea value={event} onChange={(e) => setEvent(e.target.value)} placeholder="いつ、どのような場面でそう感じたかを書いてください" /></label><label className="form-field"><span>一言メッセージ（任意）</span><textarea value={message} onChange={(e) => setMessage(e.target.value)} /></label><div className="modal-actions"><button className="text-button" onClick={onClose}>キャンセル</button><button className="primary-button" disabled={!event.trim()} onClick={submit}>本人に送る</button></div></div></div>;
+const reactions = ['ありがとう！🥳', '助かった！🙌', 'いい視点だった！💡', '頼もしかった！👏', '力が活きてた！✨', 'またお願いしたい！🤝', '新しい一面を知れた！👀'];
+
+function QuickVoices({ onSend }: { onSend: (reaction: string) => void }) {
+  return <div className="quick-voices"><strong>ひとこと届ける</strong><div>{reactions.map((reaction) => <button key={reaction} onClick={() => onSend(reaction)}>{reaction}</button>)}</div></div>;
+}
+
+function VoiceToast({ name, onUndo }: { name: string; onUndo: () => void }) {
+  return <div className="undo-toast">{name}さんに声を届けました！🎉<button onClick={onUndo}><Undo2 />取り消す</button></div>;
+}
+
+function MapPageHeading({ view, setView }: { view: 'current' | 'themes'; setView: (view: 'current' | 'themes') => void }) {
+  return <><section className="map-page-heading"><div><h1>{view === 'current' ? 'チームの現在地' : 'テーマから見る'}</h1><p>{view === 'current' ? '一人ひとりが置いた現在地から、チーム全体をみわたします。' : 'テーマごとに、経験、本人の感覚、これからの意向をみわたします。'}</p></div><p className="self-report-note">位置は本人が登録しています</p></section><div className="map-view-tabs"><button className={view === 'current' ? 'selected' : ''} onClick={() => setView('current')}>チームの現在地</button><button className={view === 'themes' ? 'selected' : ''} onClick={() => setView('themes')}>テーマから見る</button></div></>;
+}
+
+function OverallMap({ members, currentUser, saveMember, navigate, sendVoice }: { members: Member[]; currentUser: Member; saveMember: (member: Member) => void; navigate: (route: Route) => void; sendVoice: (member: Member, reaction: string) => void }) {
+  const [selectedId, setSelectedId] = useState<string | null>(currentUser.id);
+  const [editing, setEditing] = useState(false);
+  const [comment, setComment] = useState(currentUser.overall.comment);
+  const selected = members.find((member) => member.id === selectedId);
+  const drop = (event: DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    const rect = event.currentTarget.getBoundingClientRect();
+    const x = Math.max(3, Math.min(97, ((event.clientX - rect.left) / rect.width) * 100));
+    const y = Math.max(5, Math.min(95, 100 - ((event.clientY - rect.top) / rect.height) * 100));
+    saveMember({ ...currentUser, overall: { ...currentUser.overall, x, y } });
+  };
+  const saveComment = () => { saveMember({ ...currentUser, overall: { ...currentUser.overall, comment } }); setEditing(false); };
+  return <div className="overall-layout"><section className="overall-map"><div className="overall-axis top">まず広げて試す</div><div className="overall-axis bottom">じっくり整える</div><div className="overall-axis left">一人で深める</div><div className="overall-axis right">人と動かす</div><div className="overall-field" onDragOver={(e) => e.preventDefault()} onDrop={drop}>{members.map((member) => <button draggable={member.id === currentUser.id} onDragStart={(e) => e.dataTransfer.setData('text/plain', member.id)} className={`overall-person ${member.id === currentUser.id ? 'is-self' : ''} ${member.id === selectedId ? 'selected' : ''}`} style={{ left: `${member.overall.x}%`, bottom: `${member.overall.y}%` }} key={member.id} onClick={() => setSelectedId(member.id)}><span className="avatar" style={{ background: member.accent }}>{member.initials}</span><strong>{member.name}</strong>{member.id === currentUser.id && <small>自分</small>}</button>)}</div></section>{selected && <aside className="overall-detail"><div className="inspector-person"><span className="avatar" style={{ background: selected.accent }}>{selected.initials}</span><div><h3>{selected.name}</h3><p>{selected.roleLabel}</p></div></div><div className="overall-comment" onDoubleClick={() => selected.id === currentUser.id && setEditing(true)}>{editing ? <><textarea autoFocus value={comment} onChange={(e) => setComment(e.target.value)} onKeyDown={(e) => { if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') saveComment(); if (e.key === 'Escape') setEditing(false); }} /><button onClick={saveComment}>保存</button></> : <><p>{selected.overall.comment || 'コメントはまだありません'}</p>{selected.id === currentUser.id && <button onClick={() => setEditing(true)}><Edit3 />編集</button>}</>}</div><div className="related-themes"><strong>この人が登録しているテーマ</strong><div>{selected.themes.slice(0, 5).map((theme) => <span key={theme.name}>{theme.name}</span>)}</div></div>{selected.id !== currentUser.id && <QuickVoices onSend={(reaction) => sendVoice(selected, reaction)} />}<button className="profile-link" onClick={() => navigate({ page: 'member', id: selected.id })}>プロフィールを見る <ChevronRight /></button></aside>}</div>;
 }

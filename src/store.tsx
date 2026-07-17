@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import {
   createContext,
   useContext,
@@ -6,11 +7,12 @@ import {
   useState,
   type ReactNode,
 } from 'react';
-import { seedMembers } from './data';
-import type { ExperienceVoice, Member } from './types';
+import { seedMembers, themeDefinitions } from './data';
+import type { ExperienceVoice, Member, ThemeDefinition } from './types';
 
 interface StoreValue {
   members: Member[];
+  themeDefinitions: ThemeDefinition[];
   currentUser: Member | null;
   login: (memberId: string) => void;
   logout: () => void;
@@ -18,10 +20,12 @@ interface StoreValue {
   addMember: (member: Member) => void;
   sendVoice: (memberId: string, voice: ExperienceVoice) => void;
   markVoiceRead: (memberId: string, voiceId: string) => void;
+  removeVoice: (memberId: string, voiceId: string) => void;
+  saveThemeDefinition: (theme: ThemeDefinition) => void;
   reset: () => void;
 }
 
-const STORAGE_KEY = 'miwatashi-v1';
+const STORAGE_KEY = 'miwatashi-v2';
 const StoreContext = createContext<StoreValue | null>(null);
 
 export function StoreProvider({ children }: { children: ReactNode }) {
@@ -41,13 +45,18 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       return null;
     }
   });
+  const [themes, setThemes] = useState<ThemeDefinition[]>(() => {
+    try { const saved = localStorage.getItem(STORAGE_KEY); return saved ? JSON.parse(saved).themes ?? themeDefinitions : themeDefinitions; }
+    catch { return themeDefinitions; }
+  });
 
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({ members, currentUserId }));
-  }, [members, currentUserId]);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ members, currentUserId, themes }));
+  }, [members, currentUserId, themes]);
 
   const value = useMemo<StoreValue>(() => ({
     members,
+    themeDefinitions: themes,
     currentUser: members.find((member) => member.id === currentUserId) ?? null,
     login: setCurrentUserId,
     logout: () => setCurrentUserId(null),
@@ -60,11 +69,15 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       member.id === memberId
         ? { ...member, voices: member.voices.map((voice) => voice.id === voiceId ? { ...voice, read: true } : voice) }
         : member)),
+    removeVoice: (memberId, voiceId) => setMembers((list) => list.map((member) =>
+      member.id === memberId ? { ...member, voices: member.voices.filter((voice) => voice.id !== voiceId) } : member)),
+    saveThemeDefinition: (theme) => setThemes((list) => [...list.filter((item) => item.id !== theme.id), theme].sort((a, b) => a.order - b.order)),
     reset: () => {
       setMembers(seedMembers);
       setCurrentUserId(null);
+      setThemes(themeDefinitions);
     },
-  }), [members, currentUserId]);
+  }), [members, currentUserId, themes]);
 
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>;
 }

@@ -27,7 +27,7 @@ export interface ExperienceVoice {
   id: string;
   theme: string;
   kind: string;
-  event: string;
+  event?: string;
   message: string;
   fromId: string;
   fromName: string;
@@ -45,13 +45,17 @@ export interface Member {
   updatedAt: string;
   accent: string;
   direction: string;
+  overall: { x: number; y: number; comment: string };
   themes: ThemeEntry[];
   voices: ExperienceVoice[];
   active: boolean;
 }
 
 export interface ThemeDefinition {
+  id: string;
   name: string;
   category: string;
   description: string;
+  active: boolean;
+  order: number;
 }

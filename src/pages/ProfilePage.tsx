@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { Check, Mail, Plus, Save, Trash2 } from 'lucide-react';
 import type { Route } from '../App';
-import { themeDefinitions } from '../data';
 import { useStore } from '../store';
 import type { ComfortLevel, ExperienceLevel, ThemeEntry, ThemeIntent, Visibility } from '../types';
 
@@ -10,7 +9,7 @@ const comfortOptions = ['苦手意識がある', '少し不安がある', '比�
 const intents: ThemeIntent[] = ['活かしたい', '挑戦したい', '支援があれば挑戦したい', '機会があれば', '今は減らしたい', '今は避けたい', '今後も優先したくない', 'まだ分からない'];
 
 export default function ProfilePage({ navigate }: { navigate: (route: Route) => void }) {
-  const { currentUser, saveMember, markVoiceRead } = useStore();
+  const { currentUser, saveMember, markVoiceRead, themeDefinitions } = useStore();
   const [form, setForm] = useState(currentUser!);
   const [adding, setAdding] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -32,7 +31,7 @@ export default function ProfilePage({ navigate }: { navigate: (route: Route) => 
     {currentUser.voices.length > 0 && <section className="voice-inbox">
       <div className="voice-inbox-heading"><Mail /><div><h2>届いた経験の声</h2><p>周囲が気付いた、具体的な仕事の場面です。</p></div></div>
       {currentUser.voices.map((voice) => <article className={voice.read ? '' : 'unread'} key={voice.id}>
-        <div><span>{voice.theme}</span><strong>{voice.kind}</strong><blockquote>「{voice.event}」</blockquote>{voice.message && <p>{voice.message}</p>}<small>{voice.fromName}さん・{new Date(voice.date).toLocaleDateString('ja-JP')}</small></div>
+        <div><span>{voice.theme}</span><strong>{voice.kind}</strong>{voice.event && <blockquote>「{voice.event}」</blockquote>}{voice.message && <p>{voice.message}</p>}<small>{voice.fromName}さん・{new Date(voice.date).toLocaleDateString('ja-JP')}</small></div>
         <div className="voice-actions"><button onClick={() => navigate({ page: 'map', skill: voice.theme })}>マップで確認する</button>{!voice.read && <button onClick={() => markVoiceRead(currentUser.id, voice.id)}>確認しました</button>}</div>
       </article>)}
     </section>}
@@ -51,14 +50,14 @@ export default function ProfilePage({ navigate }: { navigate: (route: Route) => 
       </article>)}</div>
     </section>
     <div className="save-bar"><button className="text-button" onClick={() => navigate({ page: 'member', id: currentUser.id })}>表示を確認</button><button className="primary-button" onClick={save}><Save />変更を保存</button></div>
-    {adding && <ThemeModal existing={form.themes.map((theme) => theme.name)} onClose={() => setAdding(false)} onAdd={(theme) => { setForm({ ...form, themes: [...form.themes, theme] }); setAdding(false); }} />}
+    {adding && <ThemeModal definitions={themeDefinitions} existing={form.themes.map((theme) => theme.name)} onClose={() => setAdding(false)} onAdd={(theme) => { setForm({ ...form, themes: [...form.themes, theme] }); setAdding(false); }} />}
   </div>;
 }
 
-function ThemeModal({ existing, onClose, onAdd }: { existing: string[]; onClose: () => void; onAdd: (theme: ThemeEntry) => void }) {
-  const available = themeDefinitions.filter((theme) => !existing.includes(theme.name));
+function ThemeModal({ definitions, existing, onClose, onAdd }: { definitions: import('../types').ThemeDefinition[]; existing: string[]; onClose: () => void; onAdd: (theme: ThemeEntry) => void }) {
+  const available = definitions.filter((theme) => theme.active && !existing.includes(theme.name));
   const [name, setName] = useState(available[0]?.name ?? '');
-  const definition = themeDefinitions.find((theme) => theme.name === name);
+  const definition = definitions.find((theme) => theme.name === name);
   const submit = () => definition && onAdd({ name, category: definition.category, experience: 1, comfort: 2, intent: 'まだ分からない', comment: '', tags: [], visibility: 'team' });
   return <div className="modal-backdrop" onMouseDown={onClose}><div className="modal" onMouseDown={(e) => e.stopPropagation()}><h2>テーマを追加</h2><p>まだ登録していない仕事のテーマから選びます。</p><label className="form-field"><span>仕事のテーマ</span><select value={name} onChange={(e) => setName(e.target.value)}>{available.map((theme) => <option key={theme.name}>{theme.name}</option>)}</select></label>{definition && <p className="theme-description">{definition.description}</p>}<div className="modal-actions"><button className="text-button" onClick={onClose}>キャンセル</button><button className="primary-button" disabled={!name} onClick={submit}>追加する</button></div></div></div>;
 }
