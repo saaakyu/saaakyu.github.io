@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Check, Mail, Plus, Save, Trash2 } from 'lucide-react';
 import type { Route } from '../App';
+import SkillMeter from '../components/SkillMeter';
 import { useStore } from '../store';
 import type { ComfortLevel, ExperienceLevel, ThemeEntry, ThemeIntent, Visibility } from '../types';
 
@@ -43,6 +44,7 @@ export default function ProfilePage({ navigate }: { navigate: (route: Route) => 
       <div className="skill-edit-list">{form.themes.map((theme, index) => <article key={theme.name}>
         <div className="skill-edit-heading"><div><span>{theme.category}</span><h3>{theme.name}</h3></div><button aria-label={`${theme.name}を削除`} onClick={() => setForm({ ...form, themes: form.themes.filter((_, i) => i !== index) })}><Trash2 /></button></div>
         <div className="form-row"><label className="form-field"><span>経験の積み重ね</span><select value={theme.experience} onChange={(e) => updateTheme(index, { experience: Number(e.target.value) as ExperienceLevel })}>{experienceOptions.map((label, i) => <option value={i + 1} key={label}>{label}</option>)}</select></label><label className="form-field"><span>本人の感覚</span><select value={theme.comfort} onChange={(e) => updateTheme(index, { comfort: Number(e.target.value) as ComfortLevel })}>{comfortOptions.map((label, i) => <option value={i + 1} key={label}>{label}</option>)}</select></label></div>
+        <div className="meter-stack edit-meter-preview"><SkillMeter label="経験" value={theme.experience} max={5} text={experienceOptions[theme.experience - 1]} /><SkillMeter label="取り組みやすさ" value={theme.comfort} max={4} text={comfortOptions[theme.comfort - 1]} tone="green" /></div>
         <label className="form-field"><span>これからの意向</span><select value={theme.intent} onChange={(e) => updateTheme(index, { intent: e.target.value as ThemeIntent })}>{intents.map((intent) => <option key={intent}>{intent}</option>)}</select></label>
         <label className="form-field"><span>自分の言葉で補足</span><textarea value={theme.comment} onChange={(e) => updateTheme(index, { comment: e.target.value })} /></label>
         <label className="form-field"><span>経験タグ（読点で区切る）</span><input value={theme.tags.join('、')} onChange={(e) => updateTheme(index, { tags: e.target.value.split(/[、,]/).map((tag) => tag.trim()).filter(Boolean) })} /></label>

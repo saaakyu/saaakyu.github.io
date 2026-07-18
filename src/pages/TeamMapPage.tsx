@@ -1,6 +1,7 @@
 import { useState, type DragEvent } from 'react';
-import { ChevronRight, Edit3, Search, Undo2, X } from 'lucide-react';
+import { ChevronRight, Edit3, Undo2, X } from 'lucide-react';
 import type { Route } from '../App';
+import SkillMeter from '../components/SkillMeter';
 import { useStore } from '../store';
 import type {
   ComfortLevel,
@@ -14,6 +15,11 @@ import type {
 
 const experienceLabels = ['まだ経験がない', '少し経験した', '複数回経験した', '継続的に経験', '人を支援できる'];
 const comfortLabels = ['自然に取り組める', '比較的取り組みやすい', '少し不安がある', '苦手意識がある'];
+const intentStrength: Record<ThemeIntent, number> = {
+  活かしたい: 4, 挑戦したい: 4, 支援があれば挑戦したい: 3,
+  機会があれば: 2, 今は減らしたい: 1, 今は避けたい: 1,
+  今後も優先したくない: 1, まだ分からない: 0,
+};
 const intentClass: Record<ThemeIntent, string> = {
   活かしたい: 'positive', 挑戦したい: 'challenge', 支援があれば挑戦したい: 'challenge',
   機会があれば: 'neutral', 今は減らしたい: 'reduce', 今は避けたい: 'avoid',
@@ -26,9 +32,9 @@ interface UndoState { member: Member; previous?: ThemeEntry; themeName: string }
 export default function TeamMapPage({ initialSkill, navigate }: { initialSkill?: string; navigate: (route: Route) => void }) {
   const { members, currentUser, saveMember, sendVoice, removeVoice, themeDefinitions } = useStore();
   const [view, setView] = useState<'current' | 'themes'>('current');
-  const [query, setQuery] = useState('');
-  const [category, setCategory] = useState('すべて');
-  const [selectedTheme, setSelectedTheme] = useState(initialSkill ?? '人前で話す');
+  const initialCategory = themeDefinitions.find((item) => item.name === initialSkill)?.category ?? '伝える';
+  const [category, setCategory] = useState(initialCategory);
+  const [selectedTheme, setSelectedTheme] = useState(initialSkill ?? '話す');
   const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null);
   const [dragging, setDragging] = useState(false);
   const [undoState, setUndoState] = useState<UndoState | null>(null);
@@ -46,9 +52,8 @@ export default function TeamMapPage({ initialSkill, navigate }: { initialSkill?:
   });
   const unregistered = activeMembers.filter((member) => !entries.some((entry) => entry.member.id === member.id));
   const selectedEntry = entries.find((entry) => entry.member.id === selectedMemberId);
-  const categories = ['すべて', ...new Set(themeDefinitions.map((item) => item.category))];
-  const visibleThemes = themeDefinitions.filter((item) =>
-    item.name.includes(query) && (category === 'すべて' || item.category === category));
+  const categories = [...new Set(themeDefinitions.filter((item) => item.active).map((item) => item.category))];
+  const visibleThemes = themeDefinitions.filter((item) => item.active && item.category === category);
 
   const placeCurrentUser = (experience: ExperienceLevel, comfort: ComfortLevel) => {
     const previous = currentUser.themes.find((item) => item.name === definition.name);
@@ -105,14 +110,12 @@ export default function TeamMapPage({ initialSkill, navigate }: { initialSkill?:
 
       <div className="map-workspace">
         <aside className="skill-navigation" aria-label="仕事のテーマ一覧">
-          <div className="skill-search"><Search /><input aria-label="テーマを検索" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="テーマを検索" /></div>
-          <div className="category-tabs" aria-label="カテゴリー">
-            {categories.map((item) => <button className={category === item ? 'selected' : ''} key={item} onClick={() => setCategory(item)}>{item}</button>)}
-          </div>
+          <label className="category-select"><span>カテゴリ</span><select value={category} onChange={(event) => { const nextCategory = event.target.value; const firstTheme = themeDefinitions.find((item) => item.active && item.category === nextCategory); setCategory(nextCategory); if (firstTheme) openTheme(firstTheme.name); }}>{categories.map((item) => <option key={item}>{item}</option>)}</select></label>
+          <div className="skill-list-heading"><strong>{category}</strong><span>具体スキル</span></div>
           <div className="compact-skill-list">
             {visibleThemes.map((item) => {
               const count = activeMembers.filter((member) => member.themes.some((theme) => theme.name === item.name)).length;
-              return <button className={definition.name === item.name ? 'selected' : ''} key={item.name} onClick={() => openTheme(item.name)}><span><strong>{item.name}</strong><small>{item.category}</small></span><span className="skill-count">{count}人</span></button>;
+              return <button className={definition.name === item.name ? 'selected' : ''} key={item.name} onClick={() => openTheme(item.name)}><span><strong>{item.name}</strong><small>{item.description}</small></span><span className="skill-count">{count}人</span></button>;
             })}
           </div>
         </aside>
@@ -198,7 +201,7 @@ function MapInspector({ entry, canSendVoice, onClose, onProfile, onVoice }: { en
   return <aside className="map-inspector">
     <button className="inspector-close" onClick={onClose} aria-label="詳細を閉じる"><X /></button>
     <div className="inspector-person"><span className="avatar" style={{ background: entry.member.accent }}>{entry.member.initials}</span><div><h3>{entry.member.name}</h3><p>{entry.member.roleLabel}</p></div></div>
-    <dl><div><dt>経験</dt><dd>{experienceLabels[entry.theme.experience - 1]}</dd></div><div><dt>本人の感覚</dt><dd>{comfortLabels[4 - entry.theme.comfort]}</dd></div><div><dt>これから</dt><dd>{entry.theme.intent}</dd></div></dl>
+    <div className="meter-stack"><SkillMeter label="経験の積み重ね" value={entry.theme.experience} max={5} text={experienceLabels[entry.theme.experience - 1]} /><SkillMeter label="今の取り組みやすさ" value={entry.theme.comfort} max={4} text={comfortLabels[4 - entry.theme.comfort]} tone="green" /><SkillMeter label="これからの意向" value={intentStrength[entry.theme.intent]} max={4} text={entry.theme.intent} tone="purple" /></div>
     {entry.theme.comment && <blockquote>「{entry.theme.comment}」</blockquote>}
     <div className="tag-list">{entry.theme.tags.map((tag) => <span key={tag}>{tag}</span>)}</div>
     {canSendVoice && <QuickVoices onSend={onVoice} />}

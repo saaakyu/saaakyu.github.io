@@ -405,3 +405,26 @@ svg { width: 18px; height: 18px; }
   .edit-section-heading { flex-direction: column; }
   .login-intro h1 { font-size: 32px; }
 }
+
+/* Skill category picker and visual proficiency bars */
+.category-select { display: block; margin-bottom: 16px; }
+.category-select span { display: block; margin-bottom: 7px; color: #3d4b64; font-weight: 600; }
+.category-select select { width: 100%; min-height: 44px; border: 2px solid #cbd4e2; border-radius: 10px; background: white; color: var(--navy); padding: 9px 11px; font-weight: 600; }
+.category-select select:focus { outline: 2px solid #4966bd; outline-offset: 2px; }
+.skill-list-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin: 8px 0 10px; }
+.skill-list-heading strong { font-size: 17px; }
+.skill-list-heading span { color: #667287; font-size: 13px; }
+.compact-skill-list > button small { line-height: 1.45; }
+.meter-stack { display: grid; gap: 12px; margin: 18px 0; }
+.meter-stack.compact { gap: 10px; margin: 14px 0; }
+.skill-meter { display: grid; gap: 7px; }
+.skill-meter-heading { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; }
+.skill-meter-heading span { color: #5b687d; font-weight: 600; }
+.skill-meter-heading strong { color: #22304a; font-size: 13px; text-align: right; }
+.skill-meter-track { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 5px; }
+.skill-meter-track span { height: 9px; border-radius: 999px; background: #dde3ec; }
+.skill-meter-track span.filled { background: #4966bd; }
+.skill-meter.green .skill-meter-track span.filled { background: #3f8a70; }
+.skill-meter.orange .skill-meter-track span.filled { background: #c58145; }
+.skill-meter.purple .skill-meter-track span.filled { background: #7a66b1; }
+.edit-meter-preview { background: #eef2f7; border-radius: 10px; padding: 14px; }
