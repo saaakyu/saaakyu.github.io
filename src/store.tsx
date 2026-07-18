@@ -25,14 +25,20 @@ interface StoreValue {
   reset: () => void;
 }
 
-const STORAGE_KEY = 'miwatashi-v2';
+const STORAGE_KEY = 'miwatashi-v3';
 const StoreContext = createContext<StoreValue | null>(null);
 
 export function StoreProvider({ children }: { children: ReactNode }) {
   const [members, setMembers] = useState<Member[]>(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
-      return saved ? JSON.parse(saved).members : seedMembers;
+      if (!saved) return seedMembers;
+      return JSON.parse(saved).members.map((member: Member) => ({
+        ...member,
+        headerColor: member.headerColor ?? '#e8edff',
+        bio: member.bio ?? 'これから本人が自己紹介を登録します。',
+        interests: member.interests ?? '',
+      }));
     } catch {
       return seedMembers;
     }

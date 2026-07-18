@@ -3,7 +3,7 @@ import { Check, Mail, Plus, Save, Trash2 } from 'lucide-react';
 import type { Route } from '../App';
 import SkillMeter from '../components/SkillMeter';
 import { useStore } from '../store';
-import type { ComfortLevel, ExperienceLevel, ThemeEntry, ThemeIntent, Visibility } from '../types';
+import type { ComfortLevel, ExperienceLevel, ThemeEntry, ThemeIntent } from '../types';
 
 const experienceOptions = ['まだ経験がない', '少し経験した', '複数回経験した', '継続的に経験している', '他の人を支援できる'];
 const comfortOptions = ['苦手意識がある', '少し不安がある', '比較的取り組みやすい', '自然に取り組める'];
@@ -37,18 +37,17 @@ export default function ProfilePage({ navigate }: { navigate: (route: Route) => 
       </article>)}
     </section>}
 
-    <section className="edit-section"><h2>これから大切にしたいこと</h2><label className="form-field"><span>短い言葉で書いてください</span><textarea value={form.direction} onChange={(event) => setForm({ ...form, direction: event.target.value })} /></label></section>
+    <section className="edit-section profile-self-section"><h2>プロフィール</h2><div className="form-row"><label className="form-field"><span>名前</span><input value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} /></label><label className="form-field"><span>アイコンの文字</span><input value={form.initials} maxLength={2} onChange={(event) => setForm({ ...form, initials: event.target.value })} /></label></div><div className="form-row"><label className="form-field"><span>アイコン色</span><input type="color" value={form.accent} onChange={(event) => setForm({ ...form, accent: event.target.value })} /></label><label className="form-field"><span>ヘッダー色</span><input type="color" value={form.headerColor} onChange={(event) => setForm({ ...form, headerColor: event.target.value })} /></label></div><label className="form-field"><span>ひとこと自己紹介</span><textarea value={form.bio} onChange={(event) => setForm({ ...form, bio: event.target.value })} /></label><label className="form-field"><span>興味があること</span><textarea value={form.interests} onChange={(event) => setForm({ ...form, interests: event.target.value })} /></label><label className="form-field"><span>これから大切にしたいこと</span><textarea value={form.direction} onChange={(event) => setForm({ ...form, direction: event.target.value })} /></label></section>
 
     <section className="edit-section">
-      <div className="edit-section-heading"><div><h2>仕事のテーマ</h2><p>経験、本人の感覚、これからの意向をテーマごとに登録します。</p></div><button className="secondary-button" onClick={() => setAdding(true)}><Plus />テーマを追加</button></div>
+      <div className="edit-section-heading"><div><h2>スキル</h2><p>経験、本人の感覚、これからの意向をスキルごとに登録します。</p></div><button className="secondary-button" onClick={() => setAdding(true)}><Plus />スキルを追加</button></div>
       <div className="skill-edit-list">{form.themes.map((theme, index) => <article key={theme.name}>
         <div className="skill-edit-heading"><div><span>{theme.category}</span><h3>{theme.name}</h3></div><button aria-label={`${theme.name}を削除`} onClick={() => setForm({ ...form, themes: form.themes.filter((_, i) => i !== index) })}><Trash2 /></button></div>
         <div className="form-row"><label className="form-field"><span>経験の積み重ね</span><select value={theme.experience} onChange={(e) => updateTheme(index, { experience: Number(e.target.value) as ExperienceLevel })}>{experienceOptions.map((label, i) => <option value={i + 1} key={label}>{label}</option>)}</select></label><label className="form-field"><span>本人の感覚</span><select value={theme.comfort} onChange={(e) => updateTheme(index, { comfort: Number(e.target.value) as ComfortLevel })}>{comfortOptions.map((label, i) => <option value={i + 1} key={label}>{label}</option>)}</select></label></div>
-        <div className="meter-stack edit-meter-preview"><SkillMeter label="経験" value={theme.experience} max={5} text={experienceOptions[theme.experience - 1]} /><SkillMeter label="取り組みやすさ" value={theme.comfort} max={4} text={comfortOptions[theme.comfort - 1]} tone="green" /></div>
+        <div className="meter-stack edit-meter-preview"><SkillMeter label="経験" value={theme.experience} text={experienceOptions[theme.experience - 1]} /><SkillMeter label="取り組みやすさ" value={theme.comfort} text={comfortOptions[theme.comfort - 1]} tone="green" /></div>
         <label className="form-field"><span>これからの意向</span><select value={theme.intent} onChange={(e) => updateTheme(index, { intent: e.target.value as ThemeIntent })}>{intents.map((intent) => <option key={intent}>{intent}</option>)}</select></label>
         <label className="form-field"><span>自分の言葉で補足</span><textarea value={theme.comment} onChange={(e) => updateTheme(index, { comment: e.target.value })} /></label>
         <label className="form-field"><span>経験タグ（読点で区切る）</span><input value={theme.tags.join('、')} onChange={(e) => updateTheme(index, { tags: e.target.value.split(/[、,]/).map((tag) => tag.trim()).filter(Boolean) })} /></label>
-        <label className="form-field visibility-field"><span>公開範囲</span><select value={theme.visibility} onChange={(e) => updateTheme(index, { visibility: e.target.value as Visibility })}><option value="team">チームに共有</option><option value="assigner">アサイン検討者だけ</option><option value="private">自分だけ</option></select></label>
       </article>)}</div>
     </section>
     <div className="save-bar"><button className="text-button" onClick={() => navigate({ page: 'member', id: currentUser.id })}>表示を確認</button><button className="primary-button" onClick={save}><Save />変更を保存</button></div>
@@ -60,6 +59,6 @@ function ThemeModal({ definitions, existing, onClose, onAdd }: { definitions: im
   const available = definitions.filter((theme) => theme.active && !existing.includes(theme.name));
   const [name, setName] = useState(available[0]?.name ?? '');
   const definition = definitions.find((theme) => theme.name === name);
-  const submit = () => definition && onAdd({ name, category: definition.category, experience: 1, comfort: 2, intent: 'まだ分からない', comment: '', tags: [], visibility: 'team' });
-  return <div className="modal-backdrop" onMouseDown={onClose}><div className="modal" onMouseDown={(e) => e.stopPropagation()}><h2>テーマを追加</h2><p>まだ登録していない仕事のテーマから選びます。</p><label className="form-field"><span>仕事のテーマ</span><select value={name} onChange={(e) => setName(e.target.value)}>{available.map((theme) => <option key={theme.name}>{theme.name}</option>)}</select></label>{definition && <p className="theme-description">{definition.description}</p>}<div className="modal-actions"><button className="text-button" onClick={onClose}>キャンセル</button><button className="primary-button" disabled={!name} onClick={submit}>追加する</button></div></div></div>;
+  const submit = () => definition && onAdd({ name, category: definition.category, experience: 1, comfort: 2, intent: 'まだ分からない', comment: '', tags: [] });
+  return <div className="modal-backdrop" onMouseDown={onClose}><div className="modal" onMouseDown={(e) => e.stopPropagation()}><h2>スキルを追加</h2><p>まだ登録していないスキルから選びます。</p><label className="form-field"><span>スキル</span><select value={name} onChange={(e) => setName(e.target.value)}>{available.map((theme) => <option key={theme.name}>{theme.name}</option>)}</select></label>{definition && <p className="theme-description">{definition.description}</p>}<div className="modal-actions"><button className="text-button" onClick={onClose}>キャンセル</button><button className="primary-button" disabled={!name} onClick={submit}>追加する</button></div></div></div>;
 }

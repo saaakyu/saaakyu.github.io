@@ -331,7 +331,6 @@ svg { width: 18px; height: 18px; }
 .skill-edit-heading span { color: var(--text-muted); font-size: 13px; }
 .skill-edit-heading h3 { margin: 3px 0 0; font-size: 17px; }
 .skill-edit-heading button { border: 0; background: transparent; color: #7d8798; }
-.visibility-field { max-width: 280px; }
 .save-bar { display: flex; align-items: center; justify-content: flex-end; gap: 15px; padding-top: 4px; }
 .saved-message, .notice { display: flex; align-items: center; gap: 7px; color: #28684f; font-weight: 600; }
 .voice-inbox { background: #eef2fb; border-radius: 15px; padding: 24px; margin-bottom: 18px; }
@@ -428,3 +427,20 @@ svg { width: 18px; height: 18px; }
 .skill-meter.orange .skill-meter-track span.filled { background: #c58145; }
 .skill-meter.purple .skill-meter-track span.filled { background: #7a66b1; }
 .edit-meter-preview { background: #eef2f7; border-radius: 10px; padding: 14px; }
+
+/* Profile, inline skill editing, and lightweight message form */
+.member-header span:not(.avatar) { color: #536176; line-height: 1.7; }
+.profile-self-section input[type="color"] { min-height: 44px; padding: 4px; }
+.voice-composer { margin: 20px 0; display: grid; gap: 9px; }
+.voice-composer strong { display: block; }
+.voice-composer textarea { min-height: 78px; border: 2px solid #d2dae7; border-radius: 9px; padding: 10px 11px; resize: vertical; line-height: 1.7; }
+.voice-composer textarea:focus { outline: 2px solid #4966bd; outline-offset: 2px; }
+.voice-composer button { border: 0; background: #edf1fb; color: #2f4d9e; min-height: 40px; border-radius: 8px; font-weight: 600; }
+.voice-composer button:disabled { opacity: .45; }
+.inline-skill-editor { margin: 18px 0; padding: 14px; background: #f2f4f7; border-radius: 10px; display: grid; gap: 10px; }
+.inline-skill-editor > strong { color: #26354e; }
+.inline-skill-editor label { display: grid; gap: 6px; color: #536176; font-weight: 600; }
+.inline-skill-editor select, .inline-skill-editor input, .inline-skill-editor textarea { border: 2px solid #d2dae7; border-radius: 8px; padding: 9px 10px; background: white; color: var(--navy); }
+.inline-skill-editor textarea { min-height: 78px; resize: vertical; line-height: 1.7; }
+.skill-admin-form { flex-wrap: wrap; max-width: 720px; }
+.skill-admin-form input { min-width: 160px; }

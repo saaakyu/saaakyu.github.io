@@ -1,5 +1,4 @@
 export type Role = 'member' | 'assigner' | 'admin';
-export type Visibility = 'team' | 'assigner' | 'private';
 export type ExperienceLevel = 1 | 2 | 3 | 4 | 5;
 export type ComfortLevel = 1 | 2 | 3 | 4;
 export type ThemeIntent =
@@ -20,7 +19,6 @@ export interface ThemeEntry {
   intent: ThemeIntent;
   comment: string;
   tags: string[];
-  visibility: Visibility;
 }
 
 export interface ExperienceVoice {
@@ -44,6 +42,9 @@ export interface Member {
   role: Role;
   updatedAt: string;
   accent: string;
+  headerColor: string;
+  bio: string;
+  interests: string;
   direction: string;
   overall: { x: number; y: number; comment: string };
   themes: ThemeEntry[];

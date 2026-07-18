@@ -1,4 +1,4 @@
-import { useState, type DragEvent } from 'react';
+import { useEffect, useState, type DragEvent } from 'react';
 import { ChevronRight, Edit3, Undo2, X } from 'lucide-react';
 import type { Route } from '../App';
 import SkillMeter from '../components/SkillMeter';
@@ -10,14 +10,13 @@ import type {
   Member,
   ThemeEntry,
   ThemeIntent,
-  Visibility,
 } from '../types';
 
 const experienceLabels = ['まだ経験がない', '少し経験した', '複数回経験した', '継続的に経験', '人を支援できる'];
 const comfortLabels = ['自然に取り組める', '比較的取り組みやすい', '少し不安がある', '苦手意識がある'];
 const intentStrength: Record<ThemeIntent, number> = {
-  活かしたい: 4, 挑戦したい: 4, 支援があれば挑戦したい: 3,
-  機会があれば: 2, 今は減らしたい: 1, 今は避けたい: 1,
+  活かしたい: 5, 挑戦したい: 5, 支援があれば挑戦したい: 4,
+  機会があれば: 3, 今は減らしたい: 2, 今は避けたい: 1,
   今後も優先したくない: 1, まだ分からない: 0,
 };
 const intentClass: Record<ThemeIntent, string> = {
@@ -34,20 +33,23 @@ export default function TeamMapPage({ initialSkill, navigate }: { initialSkill?:
   const [view, setView] = useState<'current' | 'themes'>('current');
   const initialCategory = themeDefinitions.find((item) => item.name === initialSkill)?.category ?? '伝える';
   const [category, setCategory] = useState(initialCategory);
-  const [selectedTheme, setSelectedTheme] = useState(initialSkill ?? '話す');
+  const [selectedTheme, setSelectedTheme] = useState(initialSkill ?? 'プレゼン');
   const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null);
   const [dragging, setDragging] = useState(false);
   const [undoState, setUndoState] = useState<UndoState | null>(null);
   const [lastVoice, setLastVoice] = useState<{ memberId: string; voiceId: string; name: string } | null>(null);
 
+  useEffect(() => {
+    if (!lastVoice) return;
+    const timerId = window.setTimeout(() => setLastVoice(null), 3200);
+    return () => window.clearTimeout(timerId);
+  }, [lastVoice]);
+
   if (!currentUser) return null;
   const activeMembers = members.filter((member) => member.active);
   const definition = themeDefinitions.find((item) => item.name === selectedTheme) ?? themeDefinitions[0];
-  const canSee = (visibility: Visibility, ownerId: string) =>
-    ownerId === currentUser.id || visibility === 'team' ||
-    (visibility === 'assigner' && currentUser.role !== 'member');
   const entries: MapEntry[] = activeMembers.flatMap((member) => {
-    const theme = member.themes.find((item) => item.name === definition.name && canSee(item.visibility, member.id));
+    const theme = member.themes.find((item) => item.name === definition.name);
     return theme ? [{ member, theme }] : [];
   });
   const unregistered = activeMembers.filter((member) => !entries.some((entry) => entry.member.id === member.id));
@@ -61,7 +63,7 @@ export default function TeamMapPage({ initialSkill, navigate }: { initialSkill?:
       ? { ...previous, experience, comfort }
       : {
           name: definition.name, category: definition.category, experience, comfort,
-          intent: 'まだ分からない', comment: '', tags: [], visibility: 'team',
+          intent: 'まだ分からない', comment: '', tags: [],
         };
     saveMember({
       ...currentUser,
@@ -89,16 +91,26 @@ export default function TeamMapPage({ initialSkill, navigate }: { initialSkill?:
     setUndoState(null);
   };
 
-  const sendQuickVoice = (entry: MapEntry, reaction: string) => {
-    const voice: ExperienceVoice = { id: crypto.randomUUID(), theme: entry.theme.name, kind: reaction, message: '', fromId: currentUser.id, fromName: currentUser.name, date: new Date().toISOString(), read: false };
+  const sendFreeVoice = (entry: MapEntry, message: string) => {
+    const voice: ExperienceVoice = { id: crypto.randomUUID(), theme: entry.theme.name, kind: 'ひとこと', message, fromId: currentUser.id, fromName: currentUser.name, date: new Date().toISOString(), read: false };
     sendVoice(entry.member.id, voice);
     setLastVoice({ memberId: entry.member.id, voiceId: voice.id, name: entry.member.name.split(' ')[0] });
   };
 
+  const saveEntry = (theme: ThemeEntry) => {
+    if (!currentUser) return;
+    saveMember({
+      ...currentUser,
+      updatedAt: new Date().toISOString().slice(0, 10),
+      themes: [...currentUser.themes.filter((item) => item.name !== theme.name), theme],
+    });
+    setSelectedMemberId(currentUser.id);
+  };
+
   if (view === 'current') return <div className="map-page">
     <MapPageHeading view={view} setView={setView} />
-    <OverallMap members={activeMembers} currentUser={currentUser} saveMember={saveMember} navigate={navigate} sendVoice={(member, reaction) => {
-      const voice: ExperienceVoice = { id: crypto.randomUUID(), theme: 'チームの現在地', kind: reaction, message: '', fromId: currentUser.id, fromName: currentUser.name, date: new Date().toISOString(), read: false };
+    <OverallMap members={activeMembers} currentUser={currentUser} saveMember={saveMember} navigate={navigate} sendVoice={(member, message) => {
+      const voice: ExperienceVoice = { id: crypto.randomUUID(), theme: 'チームの現在地', kind: 'ひとこと', message, fromId: currentUser.id, fromName: currentUser.name, date: new Date().toISOString(), read: false };
       sendVoice(member.id, voice); setLastVoice({ memberId: member.id, voiceId: voice.id, name: member.name.split(' ')[0] });
     }} />
     {lastVoice && <VoiceToast name={lastVoice.name} onUndo={() => { removeVoice(lastVoice.memberId, lastVoice.voiceId); setLastVoice(null); }} />}
@@ -109,7 +121,7 @@ export default function TeamMapPage({ initialSkill, navigate }: { initialSkill?:
       <MapPageHeading view={view} setView={setView} />
 
       <div className="map-workspace">
-        <aside className="skill-navigation" aria-label="仕事のテーマ一覧">
+        <aside className="skill-navigation" aria-label="スキル一覧">
           <label className="category-select"><span>カテゴリ</span><select value={category} onChange={(event) => { const nextCategory = event.target.value; const firstTheme = themeDefinitions.find((item) => item.active && item.category === nextCategory); setCategory(nextCategory); if (firstTheme) openTheme(firstTheme.name); }}>{categories.map((item) => <option key={item}>{item}</option>)}</select></label>
           <div className="skill-list-heading"><strong>{category}</strong><span>具体スキル</span></div>
           <div className="compact-skill-list">
@@ -182,11 +194,13 @@ export default function TeamMapPage({ initialSkill, navigate }: { initialSkill?:
           </div>
 
           {selectedEntry && <MapInspector
+            key={`${selectedEntry.member.id}-${selectedEntry.theme.name}`}
             entry={selectedEntry}
             canSendVoice={selectedEntry.member.id !== currentUser.id}
             onClose={() => setSelectedMemberId(null)}
             onProfile={() => navigate({ page: 'member', id: selectedEntry.member.id })}
-            onVoice={(reaction) => sendQuickVoice(selectedEntry, reaction)}
+            onSave={saveEntry}
+            onVoice={(message) => sendFreeVoice(selectedEntry, message)}
           />}
         </section>
       </div>
@@ -197,22 +211,24 @@ export default function TeamMapPage({ initialSkill, navigate }: { initialSkill?:
   );
 }
 
-function MapInspector({ entry, canSendVoice, onClose, onProfile, onVoice }: { entry: MapEntry; canSendVoice: boolean; onClose: () => void; onProfile: () => void; onVoice: (reaction: string) => void }) {
+function MapInspector({ entry, canSendVoice, onClose, onProfile, onVoice, onSave }: { entry: MapEntry; canSendVoice: boolean; onClose: () => void; onProfile: () => void; onVoice: (message: string) => void; onSave: (theme: ThemeEntry) => void }) {
+  const [draft, setDraft] = useState(entry.theme);
+  const isSelf = !canSendVoice;
   return <aside className="map-inspector">
     <button className="inspector-close" onClick={onClose} aria-label="詳細を閉じる"><X /></button>
     <div className="inspector-person"><span className="avatar" style={{ background: entry.member.accent }}>{entry.member.initials}</span><div><h3>{entry.member.name}</h3><p>{entry.member.roleLabel}</p></div></div>
-    <div className="meter-stack"><SkillMeter label="経験の積み重ね" value={entry.theme.experience} max={5} text={experienceLabels[entry.theme.experience - 1]} /><SkillMeter label="今の取り組みやすさ" value={entry.theme.comfort} max={4} text={comfortLabels[4 - entry.theme.comfort]} tone="green" /><SkillMeter label="これからの意向" value={intentStrength[entry.theme.intent]} max={4} text={entry.theme.intent} tone="purple" /></div>
-    {entry.theme.comment && <blockquote>「{entry.theme.comment}」</blockquote>}
+    <div className="meter-stack"><SkillMeter label="経験の積み重ね" value={entry.theme.experience} text={experienceLabels[entry.theme.experience - 1]} /><SkillMeter label="今の取り組みやすさ" value={entry.theme.comfort} text={comfortLabels[4 - entry.theme.comfort]} tone="green" /><SkillMeter label="これからの意向" value={intentStrength[entry.theme.intent]} text={entry.theme.intent} tone="purple" /></div>
+    {isSelf && <div className="inline-skill-editor"><strong>このスキルの登録を編集</strong><label>経験<select value={draft.experience} onChange={(event) => setDraft({ ...draft, experience: Number(event.target.value) as ExperienceLevel })}>{experienceLabels.map((label, index) => <option value={index + 1} key={label}>{label}</option>)}</select></label><label>本人の感覚<select value={draft.comfort} onChange={(event) => setDraft({ ...draft, comfort: Number(event.target.value) as ComfortLevel })}>{comfortLabels.slice().reverse().map((label, index) => <option value={index + 1} key={label}>{label}</option>)}</select></label><label>これから<select value={draft.intent} onChange={(event) => setDraft({ ...draft, intent: event.target.value as ThemeIntent })}>{Object.keys(intentClass).map((intent) => <option key={intent}>{intent}</option>)}</select></label><label>自分の言葉<textarea value={draft.comment} onChange={(event) => setDraft({ ...draft, comment: event.target.value })} /></label><label>経験タグ<input value={draft.tags.join('、')} onChange={(event) => setDraft({ ...draft, tags: event.target.value.split(/[、,]/).map((tag) => tag.trim()).filter(Boolean) })} /></label><button className="secondary-button" onClick={() => onSave(draft)}>この内容で保存</button></div>}
+    {entry.theme.comment && !isSelf && <blockquote>「{entry.theme.comment}」</blockquote>}
     <div className="tag-list">{entry.theme.tags.map((tag) => <span key={tag}>{tag}</span>)}</div>
-    {canSendVoice && <QuickVoices onSend={onVoice} />}
+    {canSendVoice && <VoiceComposer onSend={onVoice} />}
     <button className="profile-link" onClick={onProfile}>プロフィール全体を見る <ChevronRight /></button>
   </aside>;
 }
 
-const reactions = ['ありがとう！🥳', '助かった！🙌', 'いい視点だった！💡', '頼もしかった！👏', '力が活きてた！✨', 'またお願いしたい！🤝', '新しい一面を知れた！👀'];
-
-function QuickVoices({ onSend }: { onSend: (reaction: string) => void }) {
-  return <div className="quick-voices"><strong>ひとこと届ける</strong><div>{reactions.map((reaction) => <button key={reaction} onClick={() => onSend(reaction)}>{reaction}</button>)}</div></div>;
+function VoiceComposer({ onSend }: { onSend: (message: string) => void }) {
+  const [message, setMessage] = useState('');
+  return <div className="voice-composer"><strong>ひとことを送る</strong><textarea value={message} onChange={(event) => setMessage(event.target.value)} placeholder="例：昨日の説明、とても分かりやすかったです" /><button disabled={!message.trim()} onClick={() => { onSend(message.trim()); setMessage(''); }}>送る</button></div>;
 }
 
 function VoiceToast({ name, onUndo }: { name: string; onUndo: () => void }) {
@@ -220,10 +236,10 @@ function VoiceToast({ name, onUndo }: { name: string; onUndo: () => void }) {
 }
 
 function MapPageHeading({ view, setView }: { view: 'current' | 'themes'; setView: (view: 'current' | 'themes') => void }) {
-  return <><section className="map-page-heading"><div><h1>{view === 'current' ? 'チームの現在地' : 'テーマから見る'}</h1><p>{view === 'current' ? '一人ひとりが置いた現在地から、チーム全体をみわたします。' : 'テーマごとに、経験、本人の感覚、これからの意向をみわたします。'}</p></div><p className="self-report-note">位置は本人が登録しています</p></section><div className="map-view-tabs"><button className={view === 'current' ? 'selected' : ''} onClick={() => setView('current')}>チームの現在地</button><button className={view === 'themes' ? 'selected' : ''} onClick={() => setView('themes')}>テーマから見る</button></div></>;
+  return <><section className="map-page-heading"><div><h1>{view === 'current' ? 'チームの現在地' : 'スキルから見る'}</h1><p>{view === 'current' ? '一人ひとりが置いた現在地から、チーム全体をみわたします。' : 'スキルごとに、経験、本人の感覚、これからの意向をみわたします。'}</p></div><p className="self-report-note">位置は本人が登録しています</p></section><div className="map-view-tabs"><button className={view === 'current' ? 'selected' : ''} onClick={() => setView('current')}>チームの現在地</button><button className={view === 'themes' ? 'selected' : ''} onClick={() => setView('themes')}>スキルから見る</button></div></>;
 }
 
-function OverallMap({ members, currentUser, saveMember, navigate, sendVoice }: { members: Member[]; currentUser: Member; saveMember: (member: Member) => void; navigate: (route: Route) => void; sendVoice: (member: Member, reaction: string) => void }) {
+function OverallMap({ members, currentUser, saveMember, navigate, sendVoice }: { members: Member[]; currentUser: Member; saveMember: (member: Member) => void; navigate: (route: Route) => void; sendVoice: (member: Member, message: string) => void }) {
   const [selectedId, setSelectedId] = useState<string | null>(currentUser.id);
   const [editing, setEditing] = useState(false);
   const [comment, setComment] = useState(currentUser.overall.comment);
@@ -236,5 +252,5 @@ function OverallMap({ members, currentUser, saveMember, navigate, sendVoice }: {
     saveMember({ ...currentUser, overall: { ...currentUser.overall, x, y } });
   };
   const saveComment = () => { saveMember({ ...currentUser, overall: { ...currentUser.overall, comment } }); setEditing(false); };
-  return <div className="overall-layout"><section className="overall-map"><div className="overall-axis top">まず広げて試す</div><div className="overall-axis bottom">じっくり整える</div><div className="overall-axis left">一人で深める</div><div className="overall-axis right">人と動かす</div><div className="overall-field" onDragOver={(e) => e.preventDefault()} onDrop={drop}>{members.map((member) => <button draggable={member.id === currentUser.id} onDragStart={(e) => e.dataTransfer.setData('text/plain', member.id)} className={`overall-person ${member.id === currentUser.id ? 'is-self' : ''} ${member.id === selectedId ? 'selected' : ''}`} style={{ left: `${member.overall.x}%`, bottom: `${member.overall.y}%` }} key={member.id} onClick={() => setSelectedId(member.id)}><span className="avatar" style={{ background: member.accent }}>{member.initials}</span><strong>{member.name}</strong>{member.id === currentUser.id && <small>自分</small>}</button>)}</div></section>{selected && <aside className="overall-detail"><div className="inspector-person"><span className="avatar" style={{ background: selected.accent }}>{selected.initials}</span><div><h3>{selected.name}</h3><p>{selected.roleLabel}</p></div></div><div className="overall-comment" onDoubleClick={() => selected.id === currentUser.id && setEditing(true)}>{editing ? <><textarea autoFocus value={comment} onChange={(e) => setComment(e.target.value)} onKeyDown={(e) => { if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') saveComment(); if (e.key === 'Escape') setEditing(false); }} /><button onClick={saveComment}>保存</button></> : <><p>{selected.overall.comment || 'コメントはまだありません'}</p>{selected.id === currentUser.id && <button onClick={() => setEditing(true)}><Edit3 />編集</button>}</>}</div><div className="related-themes"><strong>この人が登録しているテーマ</strong><div>{selected.themes.slice(0, 5).map((theme) => <span key={theme.name}>{theme.name}</span>)}</div></div>{selected.id !== currentUser.id && <QuickVoices onSend={(reaction) => sendVoice(selected, reaction)} />}<button className="profile-link" onClick={() => navigate({ page: 'member', id: selected.id })}>プロフィールを見る <ChevronRight /></button></aside>}</div>;
+  return <div className="overall-layout"><section className="overall-map"><div className="overall-axis top">これから増やしたい</div><div className="overall-axis bottom">経験として見えやすい</div><div className="overall-axis left">手を動かして形にする</div><div className="overall-axis right">人に伝えて進める</div><div className="overall-field" onDragOver={(e) => e.preventDefault()} onDrop={drop}>{members.map((member) => <button draggable={member.id === currentUser.id} onDragStart={(e) => e.dataTransfer.setData('text/plain', member.id)} className={`overall-person ${member.id === currentUser.id ? 'is-self' : ''} ${member.id === selectedId ? 'selected' : ''}`} style={{ left: `${member.overall.x}%`, bottom: `${member.overall.y}%` }} key={member.id} onClick={() => setSelectedId(member.id)}><span className="avatar" style={{ background: member.accent }}>{member.initials}</span><strong>{member.name}</strong>{member.id === currentUser.id && <small>自分</small>}</button>)}</div></section>{selected && <aside className="overall-detail"><div className="inspector-person"><span className="avatar" style={{ background: selected.accent }}>{selected.initials}</span><div><h3>{selected.name}</h3><p>{selected.roleLabel}</p></div></div><div className="overall-comment" onDoubleClick={() => selected.id === currentUser.id && setEditing(true)}>{editing ? <><textarea autoFocus value={comment} onChange={(e) => setComment(e.target.value)} onKeyDown={(e) => { if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') saveComment(); if (e.key === 'Escape') setEditing(false); }} /><button onClick={saveComment}>保存</button></> : <><p>{selected.overall.comment || 'コメントはまだありません'}</p>{selected.id === currentUser.id && <button onClick={() => setEditing(true)}><Edit3 />編集</button>}</>}</div><div className="related-themes"><strong>この人が登録しているスキル</strong><div>{selected.themes.slice(0, 5).map((theme) => <span key={theme.name}>{theme.name}</span>)}</div></div>{selected.id !== currentUser.id && <VoiceComposer onSend={(message) => sendVoice(selected, message)} />}<button className="profile-link" onClick={() => navigate({ page: 'member', id: selected.id })}>プロフィールを見る <ChevronRight /></button></aside>}</div>;
 }

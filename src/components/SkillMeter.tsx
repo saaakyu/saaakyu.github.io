@@ -1,12 +1,12 @@
 interface SkillMeterProps {
   label: string;
   value: number;
-  max: number;
+  max?: number;
   text: string;
   tone?: 'blue' | 'green' | 'orange' | 'purple';
 }
 
-export default function SkillMeter({ label, value, max, text, tone = 'blue' }: SkillMeterProps) {
+export default function SkillMeter({ label, value, max = 5, text, tone = 'blue' }: SkillMeterProps) {
   const safeValue = Math.max(0, Math.min(value, max));
   return (
     <div className={`skill-meter ${tone}`}>

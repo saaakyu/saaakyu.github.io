@@ -65,7 +65,7 @@ export default function App() {
           </button>
           {accountOpen && (
             <div className="account-menu">
-              <p>{currentUser.email}</p>
+              <p>{currentUser.name}</p>
               <button onClick={() => { navigate({ page: 'profile' }); setAccountOpen(false); }}>
                 <UserRound /> プロフィールを編集
               </button>
